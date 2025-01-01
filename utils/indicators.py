@@ -1,14 +1,13 @@
-# Добавляем логику для получения сигналов
+import pandas as pd
+
 class Supertrend:
     @staticmethod
     def get_signal(data):
-        # Логика для Supertrend
         return "Покупать" if data["close"].iloc[-1] > data["close"].mean() else "Продавать"
 
 class EMA:
     @staticmethod
     def get_signal(data):
-        # Логика для EMA
         short_ema = data["close"].ewm(span=9).mean().iloc[-1]
         long_ema = data["close"].ewm(span=21).mean().iloc[-1]
         return "Покупать" if short_ema > long_ema else "Продавать"
@@ -16,7 +15,6 @@ class EMA:
 class RSI:
     @staticmethod
     def get_signal(data):
-        # Логика для RSI
         delta = data["close"].diff()
         gain = (delta.where(delta > 0, 0)).mean()
         loss = (-delta.where(delta < 0, 0)).mean()
@@ -27,7 +25,6 @@ class RSI:
 class MACD:
     @staticmethod
     def get_signal(data):
-        # Логика для MACD
         short_ema = data["close"].ewm(span=12).mean()
         long_ema = data["close"].ewm(span=26).mean()
         macd = short_ema - long_ema

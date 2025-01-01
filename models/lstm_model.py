@@ -20,8 +20,22 @@ class LSTMModel:
         model.compile(optimizer='adam', loss='mean_squared_error')
         return model
 
-    def train(self, X_train, y_train, epochs=50, batch_size=32, validation_split=0.2):
-        self.model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
+    @staticmethod
+    def prepare_data(data, look_back=60):
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled_data = scaler.fit_transform(data['close'].values.reshape(-1, 1))
+
+        X, y = [], []
+        for i in range(look_back, len(scaled_data)):
+            X.append(scaled_data[i-look_back:i, 0])
+            y.append(scaled_data[i, 0])
+
+        X, y = np.array(X), np.array(y)
+        X = np.reshape(X, (X.shape[0], X.shape[1], 1))
+        return X, y, scaler
+
+    def train(self, X_train, y_train, epochs=50, batch_size=32):
+        self.model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2)
 
     def predict(self, X_test):
         return self.model.predict(X_test)
@@ -33,19 +47,3 @@ class LSTMModel:
     def load_model(file_path):
         from tensorflow.keras.models import load_model
         return load_model(file_path)
-
-def prepare_data(data, look_back=60):
-    """
-    Prepare data for LSTM input.
-    """
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data = scaler.fit_transform(data['close'].values.reshape(-1, 1))
-
-    X, y = [], []
-    for i in range(look_back, len(scaled_data)):
-        X.append(scaled_data[i-look_back:i, 0])
-        y.append(scaled_data[i, 0])
-
-    X, y = np.array(X), np.array(y)
-    X = np.reshape(X, (X.shape[0], X.shape[1], 1))  # Reshape for LSTM
-    return X, y, scaler

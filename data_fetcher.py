@@ -1,9 +1,9 @@
 import pandas as pd
 import ccxt
 import logging
+from datetime import datetime, timezone
 import tkinter as tk
 from tkinter import messagebox
-from datetime import datetime, timezone
 
 class DataFetcher:
     def __init__(self):
@@ -11,7 +11,7 @@ class DataFetcher:
         Initialize DataFetcher with connections to Bybit exchange.
         """
         try:
-            # Инициализация Bybit с API-ключами и увеличенным recv_window
+            # Инициализация Bybit с API-ключами
             self.bybit = ccxt.bybit({
                 'apiKey': '49lPvpiehnX70223eL',  # Ваш API-ключ
                 'secret': 'yD8GAvgQPyA5K867WjXgIQEf86NbYphr2Rh2',  # Ваш Secret-ключ
@@ -20,8 +20,10 @@ class DataFetcher:
                 },
             })
             logging.info("Bybit API initialized successfully.")
-            # Проверка времени сразу после инициализации
+
+            # Проверка синхронизации времени
             self.check_time_synchronization()
+
         except Exception as e:
             logging.error(f"Error initializing Bybit API: {e}")
             raise
@@ -80,9 +82,11 @@ class DataFetcher:
             data.set_index('timestamp', inplace=True)
 
             logging.info(f"Historical data for {symbol} ({timeframe}) fetched successfully.")
+            print(data.head())  # Вывод первых строк данных для проверки
             return data
         except ccxt.BaseError as e:
             logging.error(f"Bybit API error fetching historical data for {symbol} ({timeframe}): {e}")
+            return pd.DataFrame()
         except Exception as e:
             logging.error(f"Error fetching historical data for {symbol} ({timeframe}): {e}")
-        return pd.DataFrame()
+            return pd.DataFrame()
