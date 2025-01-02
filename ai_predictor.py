@@ -4,7 +4,7 @@ import json
 import os
 import time
 import datetime
-import logging  # Добавлен импорт модуля logging
+import logging
 from models.lstm_model import LSTMModel
 from data_fetcher import DataFetcher
 from utils.logging_utils import (
@@ -70,9 +70,14 @@ class AIPredictor:
             all_data = []
             fetcher = DataFetcher()
             for symbol in symbols:
-                data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
-                if not data.empty:
-                    all_data.append(data)
+                try:
+                    data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
+                    if not data.empty:
+                        all_data.append(data)
+                except Exception as e:
+                    logging.error(f"Ошибка при загрузке данных для {symbol}: {e}")
+                    continue
+
             if not all_data:
                 raise ValueError("No data fetched for any symbol.")
             combined_data = pd.concat(all_data)

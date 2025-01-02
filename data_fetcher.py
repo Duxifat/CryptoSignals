@@ -27,13 +27,13 @@ class DataFetcher:
 
         except ccxt.NetworkError as e:
             logging.error(f"Network error during initialization: {e}")
-            raise RuntimeError("Network error. Please check your internet connection.")
+            raise RuntimeError("Ошибка сети. Пожалуйста, проверьте интернет-соединение.")
         except ccxt.ExchangeError as e:
             logging.error(f"Exchange error during initialization: {e}")
-            raise RuntimeError("Exchange error. Please check the API keys and permissions.")
+            raise RuntimeError("Ошибка биржи. Пожалуйста, проверьте API ключи и разрешения.")
         except Exception as e:
             logging.error(f"Unexpected error during initialization: {e}")
-            raise RuntimeError("An unexpected error occurred.")
+            raise RuntimeError("Произошла непредвиденная ошибка.")
 
     def check_time_synchronization(self):
         """
@@ -52,7 +52,7 @@ class DataFetcher:
                 self.show_time_warning(time_difference)
         except Exception as e:
             logging.error(f"Error checking time synchronization: {e}")
-            raise RuntimeError("Unable to check time synchronization.")
+            raise RuntimeError("Не удалось проверить синхронизацию времени.")
 
     def show_time_warning(self, time_difference):
         """
@@ -72,7 +72,7 @@ class DataFetcher:
             logging.error(f"Error showing time warning: {e}")
         finally:
             # Остановка программы
-            raise RuntimeError("Local time is not synchronized with server time.")
+            raise RuntimeError("Локальное время не синхронизировано с серверным временем.")
 
     def fetch_historical_data(self, symbol, timeframe='1h', limit=200):
         """
@@ -94,10 +94,10 @@ class DataFetcher:
             return data
         except ccxt.NetworkError as e:
             logging.error(f"Network error fetching data for {symbol} ({timeframe}): {e}")
-            raise RuntimeError("Network error. Please check your internet connection.")
+            raise RuntimeError("Ошибка сети. Пожалуйста, проверьте интернет-соединение.")
         except ccxt.ExchangeError as e:
             logging.error(f"Exchange error fetching data for {symbol} ({timeframe}): {e}")
-            raise RuntimeError("Exchange error. Please check the API keys and permissions.")
+            raise RuntimeError("Ошибка биржи. Пожалуйста, проверьте API ключи и разрешения.")
         except Exception as e:
             logging.error(f"Unexpected error fetching data for {symbol} ({timeframe}): {e}")
-            raise RuntimeError("An unexpected error occurred.")
+            raise RuntimeError("Произошла непредвиденная ошибка.")

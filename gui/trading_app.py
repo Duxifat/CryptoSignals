@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
+from tkinter import messagebox
 from data_fetcher import DataFetcher
 from ai_predictor import AIPredictor
 from utils.indicators import Supertrend, EMA, RSI, MACD
@@ -186,6 +187,7 @@ class TradingApp(tk.Tk):
             logging.info("Обучение ИИ на всех парах завершено.")
         except Exception as e:
             logging.error(f"Ошибка при обучении ИИ: {e}")
+            messagebox.showerror("Ошибка", f"Ошибка при обучении ИИ: {e}")
 
     def setup_analysis_section(self):
         """Центральная область: Процесс анализа."""
@@ -253,6 +255,7 @@ class TradingApp(tk.Tk):
             data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
             if data.empty:
                 logging.error("Ошибка: Не удалось загрузить данные.")
+                messagebox.showerror("Ошибка", "Не удалось загрузить данные. Проверьте интернет-соединение.")
                 return
 
             logging.info("Данные успешно загружены.")
@@ -261,6 +264,7 @@ class TradingApp(tk.Tk):
             logging.info("Шаг 2: Валидация данных...")
             if not validate_data(data):
                 logging.error("Ошибка: Данные не прошли валидацию.")
+                messagebox.showerror("Ошибка", "Данные не прошли валидацию.")
                 return
 
             logging.info("Данные прошли валидацию.")
@@ -285,6 +289,7 @@ class TradingApp(tk.Tk):
                 logging.info(f"Прогноз: {predictions[-1]}")
             else:
                 logging.error("Ошибка: Не удалось выполнить прогноз.")
+                messagebox.showerror("Ошибка", "Не удалось выполнить прогноз.")
 
             # Шаг 5: Формирование рекомендации
             logging.info("Шаг 5: Формирование рекомендации...")
@@ -295,6 +300,7 @@ class TradingApp(tk.Tk):
 
         except Exception as e:
             logging.error(f"Ошибка: {str(e)}")
+            messagebox.showerror("Ошибка", f"Произошла ошибка: {str(e)}")
 
     def generate_recommendation(self, trend_signal, ema_signal, rsi_signal, macd_signal, predictions):
         """Генерирует общую рекомендацию на основе всех сигналов."""
