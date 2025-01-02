@@ -42,7 +42,11 @@ class AIPredictor:
     def get_ai_status(self):
         """Возвращает статус ИИ и время последнего обучения."""
         status = "Обучена" if self.last_trained else "Не обучена"
-        return status, self.last_trained
+        if self.last_trained:
+            # Форматируем дату и время: дд:мм:гггг Час:минуты:секунды
+            formatted_time = self.last_trained.strftime("%d:%m:%Y %H:%M:%S")
+            return status, formatted_time
+        return status, None
 
     def get_training_recommendation(self):
         """Рекомендует обучение, если прошло больше 7 дней с последнего обучения."""
@@ -51,7 +55,10 @@ class AIPredictor:
         days_since_training = (datetime.datetime.now() - self.last_trained).days
         if days_since_training > 7:
             return f"Обучить ИИ (прошло {days_since_training} дней)"
-        return "Обучение не требуется"
+        # Если обучение не требуется, указываем, когда нужно обучить снова
+        next_training_date = self.last_trained + datetime.timedelta(days=7)
+        formatted_date = next_training_date.strftime("%d:%m:%Y %H:%M:%S")
+        return f"Обучить ИИ снова после {formatted_date}"
 
     def train_ai(self, data):
         """Запускает обучение ИИ."""
