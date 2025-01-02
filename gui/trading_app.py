@@ -45,13 +45,22 @@ class TradingApp(tk.Tk):
 
         tk.Label(sub_frame, text="Выберите пару:", bg="#28293e", fg="#a9b7c6").grid(row=1, column=0, padx=20, sticky="w")
         self.symbol_var = tk.StringVar(value="BTC/USDT")
-        ttk.Combobox(sub_frame, values=["BTC/USDT", "ETH/USDT"], textvariable=self.symbol_var, width=15)\
-            .grid(row=2, column=0, padx=20, pady=5, sticky="w")
+        ttk.Combobox(sub_frame, values=[
+            "BTC/USDT", "ETH/USDT", "XRP/USDT", "SOL/USDT", 
+            "DOGE/USDT", "TAI/USDT", "PHA/USDT", "SUI/USDT", 
+            "1000PEPE/USDT"
+        ], textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="w")
 
         tk.Label(sub_frame, text="Сумма ставки:", bg="#28293e", fg="#a9b7c6").grid(row=3, column=0, padx=20, pady=(10, 0), sticky="w")
         self.capital_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
                                       insertbackground="#ffffff", relief="solid", borderwidth=1)
         self.capital_entry.grid(row=4, column=0, padx=20, pady=5, sticky="w")
+
+        # Добавляем поле для ввода плеча
+        tk.Label(sub_frame, text="Укажи плечо", bg="#28293e", fg="#a9b7c6").grid(row=5, column=0, padx=20, pady=(10, 0), sticky="w")
+        self.leverage_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
+                                       insertbackground="#ffffff", relief="solid", borderwidth=1)
+        self.leverage_entry.grid(row=6, column=0, padx=20, pady=5, sticky="w")
 
         # Кнопка "Запустить анализ"
         self.start_button = tk.Button(
@@ -64,7 +73,7 @@ class TradingApp(tk.Tk):
             relief="flat",
             activebackground="#45a049"
         )
-        self.start_button.grid(row=5, column=0, padx=20, pady=(20, 0), sticky="w")
+        self.start_button.grid(row=7, column=0, padx=20, pady=(20, 0), sticky="w")
 
     def setup_analysis_section(self):
         """Центральная область: Процесс анализа."""
@@ -114,6 +123,12 @@ class TradingApp(tk.Tk):
             symbol = self.symbol_var.get()
             self.analysis_text.insert(tk.END, f"Выбрана пара: {symbol}\n")
 
+            # Получаем сумму ставки и плечо
+            capital = self.capital_entry.get()
+            leverage = self.leverage_entry.get()  # Извлекаем значение плеча
+            self.analysis_text.insert(tk.END, f"Сумма ставки: {capital}\n")
+            self.analysis_text.insert(tk.END, f"Плечо: {leverage}\n")  # Выводим значение плеча
+
             # Загружаем исторические данные
             fetcher = DataFetcher()
             data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
@@ -156,3 +171,7 @@ class TradingApp(tk.Tk):
         except Exception as e:
             self.analysis_text.insert(tk.END, f"Ошибка: {str(e)}\n")
             logging.error(f"Ошибка при выполнении анализа: {e}")
+
+if __name__ == "__main__":
+    app = TradingApp()
+    app.mainloop()
