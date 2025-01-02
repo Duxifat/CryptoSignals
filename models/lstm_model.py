@@ -1,17 +1,21 @@
 import numpy as np
 import pandas as pd
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 from sklearn.preprocessing import MinMaxScaler
+import datetime
 
 class LSTMModel:
     def __init__(self, input_shape):
         self.input_shape = input_shape
         self.model = self._build_model()
+        self.is_trained = False  # Статус обучения
+        self.last_trained = None  # Время последнего обучения
 
     def _build_model(self):
         model = Sequential()
-        model.add(LSTM(50, return_sequences=True, input_shape=self.input_shape))
+        model.add(Input(shape=self.input_shape))  # Используем слой Input
+        model.add(LSTM(50, return_sequences=True))
         model.add(Dropout(0.2))
         model.add(LSTM(50, return_sequences=False))
         model.add(Dropout(0.2))
@@ -36,6 +40,8 @@ class LSTMModel:
 
     def train(self, X_train, y_train, epochs=50, batch_size=32):
         self.model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2)
+        self.is_trained = True
+        self.last_trained = datetime.datetime.now()
 
     def predict(self, X_test):
         return self.model.predict(X_test)

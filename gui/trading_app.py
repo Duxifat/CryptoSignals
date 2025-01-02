@@ -5,14 +5,20 @@ from data_fetcher import DataFetcher
 from ai_predictor import AIPredictor
 from utils.indicators import Supertrend, EMA, RSI, MACD
 from utils.validation_utils import validate_data
-import logging
+from utils.logging_utils import (
+    log_data_fetching,
+    log_data_fetching_error,
+    log_data_validation,
+    log_user_action,
+    log_critical_error
+)
 
 class TradingApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Crypto Trading Analysis")
         self.geometry("1200x720")
-        self.configure(bg="#1e1e2f")  # Тёмный фон приложения
+        self.configure(bg="#1e1e2f")
 
         # Настройка главной сетки окна
         self.grid_columnconfigure(0, weight=0)  # левая панель (фиксированная ширина)
@@ -34,6 +40,9 @@ class TradingApp(tk.Tk):
         self.setup_input_section()    # левая панель
         self.setup_analysis_section() # центральный блок
         self.setup_result_section()   # правая панель
+
+        # Обновление статуса ИИ при запуске
+        self.update_ai_status()
 
     def validate_number(self, P):
         """Валидация: разрешает ввод только чисел."""
@@ -75,6 +84,27 @@ class TradingApp(tk.Tk):
                                        validate="key", validatecommand=(self.register(self.validate_number), "%P"))
         self.leverage_entry.grid(row=6, column=0, padx=20, pady=5, sticky="ew")
 
+        # Статус ИИ
+        self.ai_status_label = tk.Label(sub_frame, text="Статус ИИ: Не обучена", bg="#28293e", fg="#a9b7c6", anchor="center")
+        self.ai_status_label.grid(row=7, column=0, padx=20, pady=(10, 0), sticky="ew")
+
+        # Рекомендация по обучению
+        self.ai_recommendation_label = tk.Label(sub_frame, text="Рекомендация: Обучить ИИ", bg="#28293e", fg="#a9b7c6", anchor="center")
+        self.ai_recommendation_label.grid(row=8, column=0, padx=20, pady=(10, 0), sticky="ew")
+
+        # Кнопка "Обучить ИИ"
+        self.train_button = tk.Button(
+            sub_frame,
+            text="Обучить ИИ",
+            bg="#4caf50",
+            fg="#ffffff",
+            font=("Arial", 10, "bold"),
+            command=self.train_ai,
+            relief="flat",
+            activebackground="#45a049"
+        )
+        self.train_button.grid(row=9, column=0, padx=20, pady=(20, 0), sticky="ew")
+
         self.start_button = tk.Button(
             sub_frame,
             text="Запустить анализ",
@@ -85,7 +115,36 @@ class TradingApp(tk.Tk):
             relief="flat",
             activebackground="#45a049"
         )
-        self.start_button.grid(row=7, column=0, padx=20, pady=(20, 0), sticky="ew")
+        self.start_button.grid(row=10, column=0, padx=20, pady=(20, 0), sticky="ew")
+
+    def update_ai_status(self):
+        """Обновляет статус ИИ и рекомендацию."""
+        predictor = AIPredictor()
+        status, last_trained = predictor.get_ai_status()
+        self.ai_status_label.config(text=f"Статус ИИ: {status}")
+        if last_trained:
+            self.ai_status_label.config(text=f"Статус ИИ: {status} (обучена {last_trained})")
+        recommendation = predictor.get_training_recommendation()
+        self.ai_recommendation_label.config(text=f"Рекомендация: {recommendation}")
+
+    def train_ai(self):
+        """Обработчик кнопки 'Обучить ИИ'."""
+        self.analysis_text.insert(tk.END, "Запуск обучения ИИ...\n")
+        try:
+            symbol = self.symbol_var.get()
+            fetcher = DataFetcher()
+            data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
+            if data.empty:
+                self.analysis_text.insert(tk.END, "Ошибка: Не удалось загрузить данные для обучения.\n")
+                return
+
+            predictor = AIPredictor()
+            predictor.train_ai(data)  # Передаем реальные данные
+            self.update_ai_status()
+            self.analysis_text.insert(tk.END, "Обучение ИИ завершено.\n")
+        except Exception as e:
+            self.analysis_text.insert(tk.END, f"Ошибка при обучении ИИ: {e}\n")
+            log_critical_error(f"Ошибка при обучении ИИ: {e}")
 
     def setup_analysis_section(self):
         """Центральная область: Процесс анализа."""
@@ -153,14 +212,18 @@ class TradingApp(tk.Tk):
             data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
             if data.empty:
                 self.analysis_text.insert(tk.END, "Ошибка: Не удалось загрузить данные.\n")
+                log_data_fetching_error(symbol, '1h', "Data is empty")
                 return
 
+            log_data_fetching(symbol, '1h')
             self.analysis_text.insert(tk.END, "Данные успешно загружены.\n")
 
             if not validate_data(data):
                 self.analysis_text.insert(tk.END, "Ошибка: Данные не прошли валидацию.\n")
+                log_data_validation(success=False)
                 return
 
+            log_data_validation(success=True)
             self.analysis_text.insert(tk.END, "Данные прошли валидацию.\n")
 
             self.analysis_text.insert(tk.END, "Расчет индикаторов...\n")
@@ -186,7 +249,7 @@ class TradingApp(tk.Tk):
 
         except Exception as e:
             self.analysis_text.insert(tk.END, f"Ошибка: {str(e)}\n")
-            logging.error(f"Ошибка при выполнении анализа: {e}")
+            log_critical_error(f"Ошибка при выполнении анализа: {e}")
 
 if __name__ == "__main__":
     app = TradingApp()
