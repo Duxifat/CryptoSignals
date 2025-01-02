@@ -35,6 +35,16 @@ class TradingApp(tk.Tk):
         self.setup_analysis_section() # центральный блок
         self.setup_result_section()   # правая панель
 
+    def validate_number(self, P):
+        """Валидация: разрешает ввод только чисел."""
+        if P == "":
+            return True  # Разрешаем пустую строку
+        try:
+            float(P)  # Пробуем преобразовать в число
+            return True
+        except ValueError:
+            return False
+
     def setup_input_section(self):
         """Левая панель: Параметры анализа."""
         sub_frame = tk.Frame(self.input_frame, bg="#28293e")
@@ -55,12 +65,14 @@ class TradingApp(tk.Tk):
 
         tk.Label(sub_frame, text="Сумма ставки:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=3, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.capital_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
-                                      insertbackground="#ffffff", relief="solid", borderwidth=1)
+                                      insertbackground="#ffffff", relief="solid", borderwidth=1,
+                                      validate="key", validatecommand=(self.register(self.validate_number), "%P"))
         self.capital_entry.grid(row=4, column=0, padx=20, pady=5, sticky="ew")
 
         tk.Label(sub_frame, text="Укажи плечо", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=5, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.leverage_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
-                                       insertbackground="#ffffff", relief="solid", borderwidth=1)
+                                       insertbackground="#ffffff", relief="solid", borderwidth=1,
+                                       validate="key", validatecommand=(self.register(self.validate_number), "%P"))
         self.leverage_entry.grid(row=6, column=0, padx=20, pady=5, sticky="ew")
 
         self.start_button = tk.Button(
