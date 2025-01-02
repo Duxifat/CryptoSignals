@@ -72,8 +72,8 @@ class TradingApp(tk.Tk):
         self.symbol_var = tk.StringVar(value="BTC/USDT")
         self.symbols = [
             "BTC/USDT", "ETH/USDT", "XRP/USDT", "SOL/USDT", 
-            "DOGE/USDT", "TAI/USDT", "PHA/USDT", "SUI/USDT", 
-            "1000PEPE/USDT"
+            "DOGE/USDT", "TAI/USDT", "ADA/USDT", "SUI/USDT", 
+            "VIRTUAL/USDT"
         ]
         ttk.Combobox(sub_frame, values=self.symbols, textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="ew")
 

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import ccxt
 import logging
@@ -11,10 +12,10 @@ class DataFetcher:
         Initialize DataFetcher with connections to Bybit exchange.
         """
         try:
-            # Инициализация Bybit с API-ключами
+            # Инициализация Bybit с API-ключами из переменных окружения
             self.bybit = ccxt.bybit({
-                'apiKey': '49lPvpiehnX70223eL',  # Ваш API-ключ
-                'secret': 'yD8GAvgQPyA5K867WjXgIQEf86NbYphr2Rh2',  # Ваш Secret-ключ
+                'apiKey': os.getenv('BYBIT_API_KEY'),
+                'secret': os.getenv('BYBIT_API_SECRET'),
                 'options': {
                     'recvWindow': 15000,  # Увеличенное значение recv_window
                 },
@@ -24,9 +25,15 @@ class DataFetcher:
             # Проверка синхронизации времени
             self.check_time_synchronization()
 
+        except ccxt.NetworkError as e:
+            logging.error(f"Network error during initialization: {e}")
+            raise RuntimeError("Network error. Please check your internet connection.")
+        except ccxt.ExchangeError as e:
+            logging.error(f"Exchange error during initialization: {e}")
+            raise RuntimeError("Exchange error. Please check the API keys and permissions.")
         except Exception as e:
-            logging.error(f"Error initializing Bybit API: {e}")
-            raise
+            logging.error(f"Unexpected error during initialization: {e}")
+            raise RuntimeError("An unexpected error occurred.")
 
     def check_time_synchronization(self):
         """
@@ -77,16 +84,20 @@ class DataFetcher:
         """
         try:
             ohlcv = self.bybit.fetch_ohlcv(symbol, timeframe, limit=limit)
+            if not ohlcv:
+                logging.error(f"No data returned for {symbol} ({timeframe}).")
+                return pd.DataFrame()
             data = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
             data['timestamp'] = pd.to_datetime(data['timestamp'], unit='ms')
             data.set_index('timestamp', inplace=True)
-
             logging.info(f"Historical data for {symbol} ({timeframe}) fetched successfully.")
-            print(data.head())  # Вывод первых строк данных для проверки
             return data
-        except ccxt.BaseError as e:
-            logging.error(f"Bybit API error fetching historical data for {symbol} ({timeframe}): {e}")
-            return pd.DataFrame()
+        except ccxt.NetworkError as e:
+            logging.error(f"Network error fetching data for {symbol} ({timeframe}): {e}")
+            raise RuntimeError("Network error. Please check your internet connection.")
+        except ccxt.ExchangeError as e:
+            logging.error(f"Exchange error fetching data for {symbol} ({timeframe}): {e}")
+            raise RuntimeError("Exchange error. Please check the API keys and permissions.")
         except Exception as e:
-            logging.error(f"Error fetching historical data for {symbol} ({timeframe}): {e}")
-            return pd.DataFrame()
+            logging.error(f"Unexpected error fetching data for {symbol} ({timeframe}): {e}")
+            raise RuntimeError("An unexpected error occurred.")
