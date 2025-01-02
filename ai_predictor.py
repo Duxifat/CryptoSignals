@@ -15,6 +15,7 @@ from utils.logging_utils import (
     log_prediction_result,
     log_prediction_error
 )
+import asyncio
 
 class AIPredictor:
     def __init__(self):
@@ -60,8 +61,8 @@ class AIPredictor:
         formatted_date = next_training_date.strftime("%d:%m:%Y %H:%M:%S")
         return f"Обучить ИИ снова после {formatted_date}"
 
-    def train_ai_on_all_pairs(self, symbols):
-        """Обучает ИИ на данных всех пар."""
+    async def train_ai_on_all_pairs(self, symbols):
+        """Обучает ИИ на данных всех пар асинхронно."""
         log_ai_training_start()
         try:
             if not symbols:
@@ -69,21 +70,17 @@ class AIPredictor:
             start_time = time.time()
             all_data = []
             fetcher = DataFetcher()
-            for symbol in symbols:
-                try:
-                    data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
-                    if not data.empty:
-                        all_data.append(data)
-                except Exception as e:
-                    logging.error(f"Ошибка при загрузке данных для {symbol}: {e}")
-                    continue
+            tasks = [fetcher.fetch_historical_data_async(symbol) for symbol in symbols]
+            results = await asyncio.gather(*tasks)
+            for data in results:
+                if not data.empty:
+                    all_data.append(data)
 
             if not all_data:
                 raise ValueError("No data fetched for any symbol.")
             combined_data = pd.concat(all_data)
             X, y, scaler = LSTMModel.prepare_data(combined_data)
             
-            # Логирование перед началом обучения
             logging.info(f"Training model on {len(symbols)} symbols.")
             
             self.model.train(X, y)

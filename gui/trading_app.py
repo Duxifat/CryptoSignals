@@ -10,6 +10,8 @@ from utils.logging_utils import setup_logging, TextWindowHandler
 from datetime import datetime, timezone
 import logging
 import threading
+import asyncio
+import sys
 
 class TradingApp(tk.Tk):
     def __init__(self):
@@ -80,11 +82,11 @@ class TradingApp(tk.Tk):
 
         # Элементы (центрированы)
         tk.Label(sub_frame, text="Выберите пару:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=1, column=0, padx=20, sticky="ew")
-        self.symbol_var = tk.StringVar(value="BTC/USDT")
+        self.symbol_var = tk.StringVar(value="BTCUSDT")
         self.symbols = [
-            "BTC/USDT", "ETH/USDT", "XRP/USDT", "SOL/USDT", 
-            "DOGE/USDT", "TAI/USDT", "ADA/USDT", "SUI/USDT", 
-            "VIRTUAL/USDT"
+            "BTCUSDT", "ETHUSDT", "XRPUSDT", "SOLUSDT", 
+            "DOGEUSDT", "TAIUSDT", "ADAUSDT", "SUIUSDT", 
+            "VIRTUALUSDT"
         ]
         ttk.Combobox(sub_frame, values=self.symbols, textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="ew")
 
@@ -175,14 +177,20 @@ class TradingApp(tk.Tk):
     def start_train_ai_on_all_pairs(self):
         """Запускает обучение ИИ в отдельном потоке."""
         self.analysis_text.delete("1.0", tk.END)  # Очистка окна
-        threading.Thread(target=self.train_ai_on_all_pairs, daemon=True).start()
+        threading.Thread(target=self.run_async_train, daemon=True).start()
 
-    def train_ai_on_all_pairs(self):
+    def run_async_train(self):
+        """Запускает асинхронное обучение."""
+        if sys.platform == 'win32':
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        asyncio.run(self.train_ai_on_all_pairs())
+
+    async def train_ai_on_all_pairs(self):
         """Обработчик кнопки 'Обучить ИИ на всех парах'."""
         logging.info("Запуск обучения ИИ на всех парах...")
         try:
             predictor = AIPredictor()
-            predictor.train_ai_on_all_pairs(self.symbols)
+            await predictor.train_ai_on_all_pairs(self.symbols)
             self.update_ai_status()
             logging.info("Обучение ИИ на всех парах завершено.")
         except Exception as e:
