@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
 from data_fetcher import DataFetcher
 from ai_predictor import AIPredictor
@@ -15,10 +15,10 @@ class TradingApp(tk.Tk):
         self.configure(bg="#1e1e2f")  # Тёмный фон приложения
 
         # Настройка главной сетки окна
-        self.grid_columnconfigure(0, weight=0)  # левая панель
-        self.grid_columnconfigure(1, weight=1)  # центральная (растягивается)
-        self.grid_columnconfigure(2, weight=0)  # правая панель
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=0)  # левая панель (фиксированная ширина)
+        self.grid_columnconfigure(1, weight=1)  # центральная панель (растягивается)
+        self.grid_columnconfigure(2, weight=1)  # правая панель (растягивается)
+        self.grid_rowconfigure(0, weight=1)     # единственная строка (растягивается)
 
         # Создание фреймов для каждой из зон
         self.input_frame = tk.Frame(self, bg="#28293e", highlightbackground="#4e4e4e", highlightthickness=2)
@@ -28,11 +28,11 @@ class TradingApp(tk.Tk):
         self.center_frame.grid(row=0, column=1, sticky="nsew")
 
         self.result_frame = tk.Frame(self, bg="#28293e", highlightbackground="#4e4e4e", highlightthickness=2)
-        self.result_frame.grid(row=0, column=2, sticky="ns")
+        self.result_frame.grid(row=0, column=2, sticky="nsew")
 
         # Заполнение зон
         self.setup_input_section()    # левая панель
-        self.setup_analysis_section() # верхний центр
+        self.setup_analysis_section() # центральный блок
         self.setup_result_section()   # правая панель
 
     def setup_input_section(self):
@@ -56,13 +56,11 @@ class TradingApp(tk.Tk):
                                       insertbackground="#ffffff", relief="solid", borderwidth=1)
         self.capital_entry.grid(row=4, column=0, padx=20, pady=5, sticky="w")
 
-        # Добавляем поле для ввода плеча
         tk.Label(sub_frame, text="Укажи плечо", bg="#28293e", fg="#a9b7c6").grid(row=5, column=0, padx=20, pady=(10, 0), sticky="w")
         self.leverage_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
                                        insertbackground="#ffffff", relief="solid", borderwidth=1)
         self.leverage_entry.grid(row=6, column=0, padx=20, pady=5, sticky="w")
 
-        # Кнопка "Запустить анализ"
         self.start_button = tk.Button(
             sub_frame,
             text="Запустить анализ",
@@ -77,13 +75,13 @@ class TradingApp(tk.Tk):
 
     def setup_analysis_section(self):
         """Центральная область: Процесс анализа."""
+        # Заголовок
         tk.Label(self.center_frame, text="Процесс анализа", font=("Arial", 14, "bold"),
                  bg="#28293e", fg="#ffffff").grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
+        # Текстовое поле (занимает 30% высоты блока)
         self.analysis_text = ScrolledText(
             self.center_frame,
-            width=60,
-            height=25,
             bg="#1e1e2f",
             fg="#a9b7c6",
             font=("Courier New", 10),
@@ -93,15 +91,20 @@ class TradingApp(tk.Tk):
         )
         self.analysis_text.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
+        # Настройка сетки для растягивания
+        self.center_frame.grid_columnconfigure(0, weight=1)
+        self.center_frame.grid_rowconfigure(1, weight=1)  # Текстовое поле (30%)
+        self.center_frame.grid_rowconfigure(2, weight=2)  # Оставшаяся часть (70%)
+
     def setup_result_section(self):
         """Правая панель: Общая рекомендация."""
+        # Заголовок
         tk.Label(self.result_frame, text="Общая рекомендация", font=("Arial", 14, "bold"),
                  bg="#28293e", fg="#ffffff").grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
+        # Текстовое поле (занимает 30% высоты блока)
         self.result_text = ScrolledText(
             self.result_frame,
-            width=40,
-            height=35,
             bg="#1e1e2f",
             fg="#a9b7c6",
             font=("Courier New", 10),
@@ -111,6 +114,11 @@ class TradingApp(tk.Tk):
         )
         self.result_text.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
+        # Настройка сетки для растягивания
+        self.result_frame.grid_columnconfigure(0, weight=1)
+        self.result_frame.grid_rowconfigure(1, weight=1)  # Текстовое поле (30%)
+        self.result_frame.grid_rowconfigure(2, weight=2)  # Оставшаяся часть (70%)
+
     def start_analysis(self):
         """Обработчик кнопки 'Запустить анализ'."""
         self.analysis_text.delete("1.0", tk.END)
@@ -119,17 +127,14 @@ class TradingApp(tk.Tk):
         self.analysis_text.insert(tk.END, "Запуск анализа...\n\n")
 
         try:
-            # Получаем выбранную пару
             symbol = self.symbol_var.get()
             self.analysis_text.insert(tk.END, f"Выбрана пара: {symbol}\n")
 
-            # Получаем сумму ставки и плечо
             capital = self.capital_entry.get()
-            leverage = self.leverage_entry.get()  # Извлекаем значение плеча
+            leverage = self.leverage_entry.get()
             self.analysis_text.insert(tk.END, f"Сумма ставки: {capital}\n")
-            self.analysis_text.insert(tk.END, f"Плечо: {leverage}\n")  # Выводим значение плеча
+            self.analysis_text.insert(tk.END, f"Плечо: {leverage}\n")
 
-            # Загружаем исторические данные
             fetcher = DataFetcher()
             data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
             if data.empty:
@@ -138,14 +143,12 @@ class TradingApp(tk.Tk):
 
             self.analysis_text.insert(tk.END, "Данные успешно загружены.\n")
 
-            # Проверяем данные
             if not validate_data(data):
                 self.analysis_text.insert(tk.END, "Ошибка: Данные не прошли валидацию.\n")
                 return
 
             self.analysis_text.insert(tk.END, "Данные прошли валидацию.\n")
 
-            # Применяем индикаторы
             self.analysis_text.insert(tk.END, "Расчет индикаторов...\n")
             trend_signal = Supertrend.get_signal(data)
             ema_signal = EMA.get_signal(data)
@@ -157,7 +160,6 @@ class TradingApp(tk.Tk):
             self.analysis_text.insert(tk.END, f"RSI: {rsi_signal}\n")
             self.analysis_text.insert(tk.END, f"MACD: {macd_signal}\n")
 
-            # Прогнозируем с помощью ИИ
             self.analysis_text.insert(tk.END, "Прогнозирование с помощью ИИ...\n")
             predictor = AIPredictor()
             predictions = predictor.predict_price_movement(data)
