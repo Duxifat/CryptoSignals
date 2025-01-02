@@ -2,6 +2,11 @@ import pandas as pd
 import logging
 
 def validate_data(data):
+    """
+    Проверяет данные на корректность.
+    :param data: Данные для проверки.
+    :return: True, если данные корректны, иначе False.
+    """
     try:
         if data is None or data.empty:
             logging.warning("Data validation failed: Data is None or empty.")

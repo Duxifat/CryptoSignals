@@ -5,6 +5,7 @@ import os
 import time
 import datetime
 from models.lstm_model import LSTMModel
+from data_fetcher import DataFetcher  # Добавляем импорт DataFetcher
 from utils.logging_utils import (
     log_ai_training_start,
     log_ai_training_complete,
@@ -60,12 +61,19 @@ class AIPredictor:
         formatted_date = next_training_date.strftime("%d:%m:%Y %H:%M:%S")
         return f"Обучить ИИ снова после {formatted_date}"
 
-    def train_ai(self, data):
-        """Запускает обучение ИИ."""
+    def train_ai_on_all_pairs(self, symbols):
+        """Обучает ИИ на данных всех пар."""
         log_ai_training_start()
         try:
             start_time = time.time()
-            X, y, scaler = LSTMModel.prepare_data(data)
+            all_data = []
+            fetcher = DataFetcher()  # Создаем экземпляр DataFetcher
+            for symbol in symbols:
+                data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
+                if not data.empty:
+                    all_data.append(data)
+            combined_data = pd.concat(all_data)
+            X, y, scaler = LSTMModel.prepare_data(combined_data)
             self.model.train(X, y)
             self.last_trained = datetime.datetime.now()
             self._save_state()  # Сохраняем состояние после обучения

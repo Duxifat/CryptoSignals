@@ -66,11 +66,12 @@ class TradingApp(tk.Tk):
         # Элементы (центрированы)
         tk.Label(sub_frame, text="Выберите пару:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=1, column=0, padx=20, sticky="ew")
         self.symbol_var = tk.StringVar(value="BTC/USDT")
-        ttk.Combobox(sub_frame, values=[
+        self.symbols = [
             "BTC/USDT", "ETH/USDT", "XRP/USDT", "SOL/USDT", 
             "DOGE/USDT", "TAI/USDT", "PHA/USDT", "SUI/USDT", 
             "1000PEPE/USDT"
-        ], textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="ew")
+        ]
+        ttk.Combobox(sub_frame, values=self.symbols, textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="ew")
 
         tk.Label(sub_frame, text="Сумма ставки:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=3, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.capital_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
@@ -92,18 +93,18 @@ class TradingApp(tk.Tk):
         self.ai_recommendation_label = tk.Label(sub_frame, text="Рекомендация: Обучить ИИ", bg="#28293e", fg="#a9b7c6", anchor="center")
         self.ai_recommendation_label.grid(row=8, column=0, padx=20, pady=(10, 0), sticky="ew")
 
-        # Кнопка "Обучить ИИ"
-        self.train_button = tk.Button(
+        # Кнопка "Обучить ИИ на всех парах"
+        self.train_all_button = tk.Button(
             sub_frame,
-            text="Обучить ИИ",
+            text="Обучить ИИ на всех парах",
             bg="#4caf50",
             fg="#ffffff",
             font=("Arial", 10, "bold"),
-            command=self.train_ai,
+            command=self.train_ai_on_all_pairs,
             relief="flat",
             activebackground="#45a049"
         )
-        self.train_button.grid(row=9, column=0, padx=20, pady=(20, 0), sticky="ew")
+        self.train_all_button.grid(row=9, column=0, padx=20, pady=(20, 0), sticky="ew")
 
         self.start_button = tk.Button(
             sub_frame,
@@ -127,21 +128,14 @@ class TradingApp(tk.Tk):
         recommendation = predictor.get_training_recommendation()
         self.ai_recommendation_label.config(text=f"Рекомендация: {recommendation}")
 
-    def train_ai(self):
-        """Обработчик кнопки 'Обучить ИИ'."""
-        self.analysis_text.insert(tk.END, "Запуск обучения ИИ...\n")
+    def train_ai_on_all_pairs(self):
+        """Обработчик кнопки 'Обучить ИИ на всех парах'."""
+        self.analysis_text.insert(tk.END, "Запуск обучения ИИ на всех парах...\n")
         try:
-            symbol = self.symbol_var.get()
-            fetcher = DataFetcher()
-            data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
-            if data.empty:
-                self.analysis_text.insert(tk.END, "Ошибка: Не удалось загрузить данные для обучения.\n")
-                return
-
             predictor = AIPredictor()
-            predictor.train_ai(data)  # Передаем реальные данные
+            predictor.train_ai_on_all_pairs(self.symbols)
             self.update_ai_status()
-            self.analysis_text.insert(tk.END, "Обучение ИИ завершено.\n")
+            self.analysis_text.insert(tk.END, "Обучение ИИ на всех парах завершено.\n")
         except Exception as e:
             self.analysis_text.insert(tk.END, f"Ошибка при обучении ИИ: {e}\n")
             log_critical_error(f"Ошибка при обучении ИИ: {e}")
