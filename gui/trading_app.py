@@ -12,6 +12,7 @@ from utils.logging_utils import (
     log_user_action,
     log_critical_error
 )
+from datetime import datetime, timezone
 
 class TradingApp(tk.Tk):
     def __init__(self):
@@ -43,6 +44,9 @@ class TradingApp(tk.Tk):
 
         # Обновление статуса ИИ при запуске
         self.update_ai_status()
+
+        # Запуск часов
+        self.update_clock()
 
     def validate_number(self, P):
         """Валидация: разрешает ввод только чисел."""
@@ -117,6 +121,35 @@ class TradingApp(tk.Tk):
             activebackground="#45a049"
         )
         self.start_button.grid(row=10, column=0, padx=20, pady=(20, 0), sticky="ew")
+
+        # Часы (местное время и UTC)
+        self.local_time_label = tk.Label(
+            sub_frame,
+            text="Местное время: ",
+            bg="#28293e",
+            fg="#a9b7c6",
+            font=("Arial", 10)
+        )
+        self.local_time_label.grid(row=11, column=0, padx=20, pady=(20, 5), sticky="ew")
+
+        self.utc_time_label = tk.Label(
+            sub_frame,
+            text="Время UTC: ",
+            bg="#28293e",
+            fg="#a9b7c6",
+            font=("Arial", 10)
+        )
+        self.utc_time_label.grid(row=12, column=0, padx=20, pady=(0, 20), sticky="ew")
+
+    def update_clock(self):
+        """Обновляет время каждую секунду."""
+        local_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        utc_time = datetime.now(timezone.utc).strftime("%d-%m-%Y %H:%M:%S")
+
+        self.local_time_label.config(text=f"Местное время: {local_time}")
+        self.utc_time_label.config(text=f"Время UTC: {utc_time}")
+
+        self.after(1000, self.update_clock)
 
     def update_ai_status(self):
         """Обновляет статус ИИ и рекомендацию."""
