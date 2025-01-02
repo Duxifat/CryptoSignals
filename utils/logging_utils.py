@@ -64,6 +64,11 @@ def log_ai_training_start():
     """Логирует начало обучения ИИ."""
     log_event("AI Training", "AI training started.")
 
+def log_ai_training_progress(epoch, loss, val_loss):
+    """Логирует прогресс обучения модели."""
+    log_message = f"Epoch {epoch} - Loss: {loss:.4f}, Val Loss: {val_loss:.4f}"
+    log_event("AI Training", log_message)
+
 def log_ai_training_complete(duration=None):
     """Логирует успешное завершение обучения ИИ."""
     message = "AI training completed successfully."

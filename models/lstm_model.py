@@ -4,7 +4,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 from sklearn.preprocessing import MinMaxScaler
 import datetime
-import logging
+import logging  # Добавлен импорт модуля logging
+from utils.logging_utils import log_ai_training_progress
 
 class LSTMModel:
     def __init__(self, input_shape):
@@ -47,14 +48,30 @@ class LSTMModel:
         try:
             if X_train is None or y_train is None:
                 raise ValueError("Training data is None.")
-            self.model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2)
+            
+            # Логирование начала обучения
+            logging.info(f"Starting training for {epochs} epochs.")
+            
+            # Обучение модели с логированием прогресса
+            history = self.model.fit(
+                X_train, y_train,
+                epochs=epochs,
+                batch_size=batch_size,
+                validation_split=0.2,
+                callbacks=[TrainingProgressLogger()]  # Добавлен callback для логирования
+            )
+            
             self.is_trained = True
             self.last_trained = datetime.datetime.now()
+            
+            # Логирование завершения обучения
+            logging.info(f"Training completed. Final loss: {history.history['loss'][-1]}")
         except Exception as e:
             logging.error(f"Error during training: {e}")
             raise
 
     def predict(self, X_test):
+        """Прогнозирует значения на основе входных данных."""
         try:
             if X_test is None:
                 raise ValueError("Test data is None.")
@@ -62,3 +79,11 @@ class LSTMModel:
         except Exception as e:
             logging.error(f"Error during prediction: {e}")
             raise
+
+# Добавьте callback для логирования прогресса
+from tensorflow.keras.callbacks import Callback
+
+class TrainingProgressLogger(Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        if logs:
+            log_ai_training_progress(epoch + 1, logs['loss'], logs['val_loss'])

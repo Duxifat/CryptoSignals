@@ -4,6 +4,7 @@ import json
 import os
 import time
 import datetime
+import logging  # Добавлен импорт модуля logging
 from models.lstm_model import LSTMModel
 from data_fetcher import DataFetcher
 from utils.logging_utils import (
@@ -76,6 +77,10 @@ class AIPredictor:
                 raise ValueError("No data fetched for any symbol.")
             combined_data = pd.concat(all_data)
             X, y, scaler = LSTMModel.prepare_data(combined_data)
+            
+            # Логирование перед началом обучения
+            logging.info(f"Training model on {len(symbols)} symbols.")
+            
             self.model.train(X, y)
             self.last_trained = datetime.datetime.now()
             self._save_state()
