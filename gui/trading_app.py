@@ -5,14 +5,10 @@ from data_fetcher import DataFetcher
 from ai_predictor import AIPredictor
 from utils.indicators import Supertrend, EMA, RSI, MACD
 from utils.validation_utils import validate_data
-from utils.logging_utils import (
-    log_data_fetching,
-    log_data_fetching_error,
-    log_data_validation,
-    log_user_action,
-    log_critical_error
-)
+from utils.logging_utils import setup_logging, TextWindowHandler
 from datetime import datetime, timezone
+import logging
+import threading
 
 class TradingApp(tk.Tk):
     def __init__(self):
@@ -42,11 +38,25 @@ class TradingApp(tk.Tk):
         self.setup_analysis_section() # центральный блок
         self.setup_result_section()   # правая панель
 
+        # Настройка логирования в текстовое окно
+        self.setup_logging_to_text_window()
+
         # Обновление статуса ИИ при запуске
         self.update_ai_status()
 
         # Запуск часов
         self.update_clock()
+
+    def setup_logging_to_text_window(self):
+        """Настраивает логирование в текстовое окно."""
+        # Создаем обработчик для текстового окна
+        text_handler = TextWindowHandler(self.analysis_text)
+        text_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+
+        # Настраиваем логирование
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+        logger.addHandler(text_handler)
 
     def validate_number(self, P):
         """Валидация: разрешает ввод только чисел."""
@@ -104,7 +114,7 @@ class TradingApp(tk.Tk):
             bg="#4caf50",
             fg="#ffffff",
             font=("Arial", 10, "bold"),
-            command=self.train_ai_on_all_pairs,
+            command=self.start_train_ai_on_all_pairs,
             relief="flat",
             activebackground="#45a049"
         )
@@ -161,17 +171,21 @@ class TradingApp(tk.Tk):
         recommendation = predictor.get_training_recommendation()
         self.ai_recommendation_label.config(text=f"Рекомендация: {recommendation}")
 
+    def start_train_ai_on_all_pairs(self):
+        """Запускает обучение ИИ в отдельном потоке."""
+        self.analysis_text.delete("1.0", tk.END)  # Очистка окна
+        threading.Thread(target=self.train_ai_on_all_pairs, daemon=True).start()
+
     def train_ai_on_all_pairs(self):
         """Обработчик кнопки 'Обучить ИИ на всех парах'."""
-        self.analysis_text.insert(tk.END, "Запуск обучения ИИ на всех парах...\n")
+        logging.info("Запуск обучения ИИ на всех парах...")
         try:
             predictor = AIPredictor()
             predictor.train_ai_on_all_pairs(self.symbols)
             self.update_ai_status()
-            self.analysis_text.insert(tk.END, "Обучение ИИ на всех парах завершено.\n")
+            logging.info("Обучение ИИ на всех парах завершено.")
         except Exception as e:
-            self.analysis_text.insert(tk.END, f"Ошибка при обучении ИИ: {e}\n")
-            log_critical_error(f"Ошибка при обучении ИИ: {e}")
+            logging.error(f"Ошибка при обучении ИИ: {e}")
 
     def setup_analysis_section(self):
         """Центральная область: Процесс анализа."""
@@ -221,62 +235,103 @@ class TradingApp(tk.Tk):
 
     def start_analysis(self):
         """Обработчик кнопки 'Запустить анализ'."""
-        self.analysis_text.delete("1.0", tk.END)
-        self.result_text.delete("1.0", tk.END)
-
-        self.analysis_text.insert(tk.END, "Запуск анализа...\n\n")
+        self.analysis_text.delete("1.0", tk.END)  # Очистка окна
+        logging.info("Запуск анализа...")
 
         try:
             symbol = self.symbol_var.get()
-            self.analysis_text.insert(tk.END, f"Выбрана пара: {symbol}\n")
+            logging.info(f"Выбрана пара: {symbol}")
 
             capital = self.capital_entry.get()
             leverage = self.leverage_entry.get()
-            self.analysis_text.insert(tk.END, f"Сумма ставки: {capital}\n")
-            self.analysis_text.insert(tk.END, f"Плечо: {leverage}\n")
+            logging.info(f"Сумма ставки: {capital}")
+            logging.info(f"Плечо: {leverage}")
 
+            # Шаг 1: Загрузка данных
+            logging.info("Шаг 1: Загрузка исторических данных...")
             fetcher = DataFetcher()
             data = fetcher.fetch_historical_data(symbol, timeframe='1h', limit=200)
             if data.empty:
-                self.analysis_text.insert(tk.END, "Ошибка: Не удалось загрузить данные.\n")
-                log_data_fetching_error(symbol, '1h', "Data is empty")
+                logging.error("Ошибка: Не удалось загрузить данные.")
                 return
 
-            log_data_fetching(symbol, '1h')
-            self.analysis_text.insert(tk.END, "Данные успешно загружены.\n")
+            logging.info("Данные успешно загружены.")
 
+            # Шаг 2: Валидация данных
+            logging.info("Шаг 2: Валидация данных...")
             if not validate_data(data):
-                self.analysis_text.insert(tk.END, "Ошибка: Данные не прошли валидацию.\n")
-                log_data_validation(success=False)
+                logging.error("Ошибка: Данные не прошли валидацию.")
                 return
 
-            log_data_validation(success=True)
-            self.analysis_text.insert(tk.END, "Данные прошли валидацию.\n")
+            logging.info("Данные прошли валидацию.")
 
-            self.analysis_text.insert(tk.END, "Расчет индикаторов...\n")
+            # Шаг 3: Расчет индикаторов
+            logging.info("Шаг 3: Расчет индикаторов...")
             trend_signal = Supertrend.get_signal(data)
             ema_signal = EMA.get_signal(data)
             rsi_signal = RSI.get_signal(data)
             macd_signal = MACD.get_signal(data)
 
-            self.analysis_text.insert(tk.END, f"Supertrend: {trend_signal}\n")
-            self.analysis_text.insert(tk.END, f"EMA: {ema_signal}\n")
-            self.analysis_text.insert(tk.END, f"RSI: {rsi_signal}\n")
-            self.analysis_text.insert(tk.END, f"MACD: {macd_signal}\n")
+            logging.info(f"Supertrend: {trend_signal}")
+            logging.info(f"EMA: {ema_signal}")
+            logging.info(f"RSI: {rsi_signal}")
+            logging.info(f"MACD: {macd_signal}")
 
-            self.analysis_text.insert(tk.END, "Прогнозирование с помощью ИИ...\n")
+            # Шаг 4: Прогнозирование с помощью ИИ
+            logging.info("Шаг 4: Прогнозирование с помощью ИИ...")
             predictor = AIPredictor()
             predictions = predictor.predict_price_movement(data)
             if predictions is not None:
-                self.analysis_text.insert(tk.END, f"Прогноз: {predictions[-1]}\n")
+                logging.info(f"Прогноз: {predictions[-1]}")
             else:
-                self.analysis_text.insert(tk.END, "Ошибка: Не удалось выполнить прогноз.\n")
+                logging.error("Ошибка: Не удалось выполнить прогноз.")
 
-            self.analysis_text.insert(tk.END, "Анализ завершен.\n")
+            # Шаг 5: Формирование рекомендации
+            logging.info("Шаг 5: Формирование рекомендации...")
+            recommendation = self.generate_recommendation(trend_signal, ema_signal, rsi_signal, macd_signal, predictions)
+            self.result_text.insert(tk.END, f"Рекомендация: {recommendation}\n")
+
+            logging.info("Анализ завершен.")
 
         except Exception as e:
-            self.analysis_text.insert(tk.END, f"Ошибка: {str(e)}\n")
-            log_critical_error(f"Ошибка при выполнении анализа: {e}")
+            logging.error(f"Ошибка: {str(e)}")
+
+    def generate_recommendation(self, trend_signal, ema_signal, rsi_signal, macd_signal, predictions):
+        """Генерирует общую рекомендацию на основе всех сигналов."""
+        buy_signals = 0
+        sell_signals = 0
+
+        if trend_signal == "Покупать":
+            buy_signals += 1
+        elif trend_signal == "Продавать":
+            sell_signals += 1
+
+        if ema_signal == "Покупать":
+            buy_signals += 1
+        elif ema_signal == "Продавать":
+            sell_signals += 1
+
+        if rsi_signal == "Перепроданность":
+            buy_signals += 1
+        elif rsi_signal == "Перекупленность":
+            sell_signals += 1
+
+        if macd_signal == "Покупать":
+            buy_signals += 1
+        elif macd_signal == "Продавать":
+            sell_signals += 1
+
+        if predictions is not None and predictions[-1] > 0:
+            buy_signals += 1
+        elif predictions is not None and predictions[-1] < 0:
+            sell_signals += 1
+
+        if buy_signals > sell_signals:
+            return "Покупать"
+        elif sell_signals > buy_signals:
+            return "Продавать"
+        else:
+            return "Держать"
 
 if __name__ == "__main__":
     app = TradingApp()

@@ -1,6 +1,18 @@
 import logging
+import tkinter as tk
 import os
-from datetime import datetime
+
+class TextWindowHandler(logging.Handler):
+    """Обработчик для вывода логов в текстовое окно."""
+    def __init__(self, text_widget):
+        super().__init__()
+        self.text_widget = text_widget
+
+    def emit(self, record):
+        """Выводит сообщение в текстовое окно."""
+        log_message = self.format(record)
+        self.text_widget.insert(tk.END, log_message + "\n")  # Добавляем сообщение в конец окна
+        self.text_widget.see(tk.END)  # Прокручиваем окно до последнего сообщения
 
 def setup_logging(log_file="logs/application.log", level=logging.INFO):
     """
@@ -22,8 +34,8 @@ def setup_logging(log_file="logs/application.log", level=logging.INFO):
         level=level,
         format=log_format,
         handlers=[
-            logging.FileHandler(log_file),  # Запись в файл
-            logging.StreamHandler()         # Вывод в консоль
+            logging.FileHandler(log_file, encoding='utf-8'),  # Запись в файл с кодировкой UTF-8
+            logging.StreamHandler()                           # Вывод в консоль
         ]
     )
     logging.info("Logging is configured.")
@@ -97,6 +109,10 @@ def log_user_action(action):
 def log_critical_error(error):
     """Логирует критические ошибки."""
     log_event("Critical Error", f"Critical error: {str(error)}", level="critical")
+
+def log_analysis_step(step, message):
+    """Логирует шаг анализа."""
+    log_event("Analysis", f"Step {step}: {message}")
 
 def log_application_start():
     """Логирует запуск приложения."""
