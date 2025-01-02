@@ -40,26 +40,28 @@ class TradingApp(tk.Tk):
         sub_frame = tk.Frame(self.input_frame, bg="#28293e")
         sub_frame.grid(row=0, column=0, sticky="nsew")
 
+        # Заголовок (центрирован)
         tk.Label(sub_frame, text="Параметры анализа", font=("Arial", 14, "bold"),
-                 bg="#28293e", fg="#ffffff").grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
+                 bg="#28293e", fg="#ffffff", anchor="center").grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
 
-        tk.Label(sub_frame, text="Выберите пару:", bg="#28293e", fg="#a9b7c6").grid(row=1, column=0, padx=20, sticky="w")
+        # Элементы (центрированы)
+        tk.Label(sub_frame, text="Выберите пару:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=1, column=0, padx=20, sticky="ew")
         self.symbol_var = tk.StringVar(value="BTC/USDT")
         ttk.Combobox(sub_frame, values=[
             "BTC/USDT", "ETH/USDT", "XRP/USDT", "SOL/USDT", 
             "DOGE/USDT", "TAI/USDT", "PHA/USDT", "SUI/USDT", 
             "1000PEPE/USDT"
-        ], textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="w")
+        ], textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="ew")
 
-        tk.Label(sub_frame, text="Сумма ставки:", bg="#28293e", fg="#a9b7c6").grid(row=3, column=0, padx=20, pady=(10, 0), sticky="w")
+        tk.Label(sub_frame, text="Сумма ставки:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=3, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.capital_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
                                       insertbackground="#ffffff", relief="solid", borderwidth=1)
-        self.capital_entry.grid(row=4, column=0, padx=20, pady=5, sticky="w")
+        self.capital_entry.grid(row=4, column=0, padx=20, pady=5, sticky="ew")
 
-        tk.Label(sub_frame, text="Укажи плечо", bg="#28293e", fg="#a9b7c6").grid(row=5, column=0, padx=20, pady=(10, 0), sticky="w")
+        tk.Label(sub_frame, text="Укажи плечо", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=5, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.leverage_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
                                        insertbackground="#ffffff", relief="solid", borderwidth=1)
-        self.leverage_entry.grid(row=6, column=0, padx=20, pady=5, sticky="w")
+        self.leverage_entry.grid(row=6, column=0, padx=20, pady=5, sticky="ew")
 
         self.start_button = tk.Button(
             sub_frame,
@@ -71,13 +73,13 @@ class TradingApp(tk.Tk):
             relief="flat",
             activebackground="#45a049"
         )
-        self.start_button.grid(row=7, column=0, padx=20, pady=(20, 0), sticky="w")
+        self.start_button.grid(row=7, column=0, padx=20, pady=(20, 0), sticky="ew")
 
     def setup_analysis_section(self):
         """Центральная область: Процесс анализа."""
-        # Заголовок
+        # Заголовок (центрирован)
         tk.Label(self.center_frame, text="Процесс анализа", font=("Arial", 14, "bold"),
-                 bg="#28293e", fg="#ffffff").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+                 bg="#28293e", fg="#ffffff", anchor="center").grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
         # Текстовое поле (занимает 30% высоты блока)
         self.analysis_text = ScrolledText(
@@ -98,9 +100,9 @@ class TradingApp(tk.Tk):
 
     def setup_result_section(self):
         """Правая панель: Общая рекомендация."""
-        # Заголовок
+        # Заголовок (центрирован)
         tk.Label(self.result_frame, text="Общая рекомендация", font=("Arial", 14, "bold"),
-                 bg="#28293e", fg="#ffffff").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+                 bg="#28293e", fg="#ffffff", anchor="center").grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
         # Текстовое поле (занимает 30% высоты блока)
         self.result_text = ScrolledText(
