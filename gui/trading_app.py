@@ -52,11 +52,8 @@ class TradingApp(tk.Tk):
 
     def setup_logging_to_text_window(self):
         """Настраивает логирование в текстовое окно."""
-        # Создаем обработчик для текстового окна
         text_handler = TextWindowHandler(self.analysis_text)
         text_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-
-        # Настраиваем логирование
         logger = logging.getLogger()
         logger.setLevel(logging.INFO)
         logger.addHandler(text_handler)
@@ -64,9 +61,9 @@ class TradingApp(tk.Tk):
     def validate_number(self, P):
         """Валидация: разрешает ввод только чисел."""
         if P == "":
-            return True  # Разрешаем пустую строку
+            return True
         try:
-            float(P)  # Пробуем преобразовать в число
+            float(P)
             return True
         except ValueError:
             return False
@@ -76,11 +73,11 @@ class TradingApp(tk.Tk):
         sub_frame = tk.Frame(self.input_frame, bg="#28293e")
         sub_frame.grid(row=0, column=0, sticky="nsew")
 
-        # Заголовок (центрирован)
+        # Заголовок
         tk.Label(sub_frame, text="Параметры анализа", font=("Arial", 14, "bold"),
                  bg="#28293e", fg="#ffffff", anchor="center").grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
 
-        # Элементы (центрированы)
+        # Выбор пары
         tk.Label(sub_frame, text="Выберите пару:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=1, column=0, padx=20, sticky="ew")
         self.symbol_var = tk.StringVar(value="BTCUSDT")
         self.symbols = [
@@ -90,12 +87,14 @@ class TradingApp(tk.Tk):
         ]
         ttk.Combobox(sub_frame, values=self.symbols, textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="ew")
 
+        # Сумма ставки
         tk.Label(sub_frame, text="Сумма ставки:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=3, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.capital_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
                                       insertbackground="#ffffff", relief="solid", borderwidth=1,
                                       validate="key", validatecommand=(self.register(self.validate_number), "%P"))
         self.capital_entry.grid(row=4, column=0, padx=20, pady=5, sticky="ew")
 
+        # Плечо
         tk.Label(sub_frame, text="Укажи плечо", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=5, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.leverage_entry = tk.Entry(sub_frame, width=15, bg="#1e1e2f", fg="#ffffff",
                                        insertbackground="#ffffff", relief="solid", borderwidth=1,
@@ -123,6 +122,7 @@ class TradingApp(tk.Tk):
         )
         self.train_all_button.grid(row=9, column=0, padx=20, pady=(20, 0), sticky="ew")
 
+        # Кнопка "Запустить анализ"
         self.start_button = tk.Button(
             sub_frame,
             text="Запустить анализ",
@@ -190,7 +190,7 @@ class TradingApp(tk.Tk):
         logging.info("Запуск обучения ИИ на всех парах...")
         try:
             predictor = AIPredictor()
-            await predictor.train_ai_on_all_pairs(self.symbols)
+            await predictor.train_ai_on_all_timeframes(self.symbols)
             self.update_ai_status()
             logging.info("Обучение ИИ на всех парах завершено.")
         except Exception as e:
@@ -199,11 +199,9 @@ class TradingApp(tk.Tk):
 
     def setup_analysis_section(self):
         """Центральная область: Процесс анализа."""
-        # Заголовок (центрирован)
         tk.Label(self.center_frame, text="Процесс анализа", font=("Arial", 14, "bold"),
                  bg="#28293e", fg="#ffffff", anchor="center").grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # Текстовое поле (занимает 30% высоты блока)
         self.analysis_text = ScrolledText(
             self.center_frame,
             bg="#1e1e2f",
@@ -215,18 +213,14 @@ class TradingApp(tk.Tk):
         )
         self.analysis_text.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
-        # Настройка сетки для растягивания
         self.center_frame.grid_columnconfigure(0, weight=1)
-        self.center_frame.grid_rowconfigure(1, weight=1)  # Текстовое поле (30%)
-        self.center_frame.grid_rowconfigure(2, weight=2)  # Оставшаяся часть (70%)
+        self.center_frame.grid_rowconfigure(1, weight=1)
 
     def setup_result_section(self):
         """Правая панель: Общая рекомендация."""
-        # Заголовок (центрирован)
         tk.Label(self.result_frame, text="Общая рекомендация", font=("Arial", 14, "bold"),
                  bg="#28293e", fg="#ffffff", anchor="center").grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # Текстовое поле (занимает 30% высоты блока)
         self.result_text = ScrolledText(
             self.result_frame,
             bg="#1e1e2f",
@@ -238,10 +232,120 @@ class TradingApp(tk.Tk):
         )
         self.result_text.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
-        # Настройка сетки для растягивания
         self.result_frame.grid_columnconfigure(0, weight=1)
-        self.result_frame.grid_rowconfigure(1, weight=1)  # Текстовое поле (30%)
-        self.result_frame.grid_rowconfigure(2, weight=2)  # Оставшаяся часть (70%)
+        self.result_frame.grid_rowconfigure(1, weight=1)
+
+    def calculate_trade_parameters(self, data, trend_signal, ema_signal, rsi_signal, macd_signal, predictions):
+        """
+        Рассчитывает параметры сделки: цену входа, тейк-профит, стоп-лосс и вероятность успеха.
+        :param data: Исторические данные.
+        :param trend_signal: Сигнал Supertrend.
+        :param ema_signal: Сигнал EMA.
+        :param rsi_signal: Сигнал RSI.
+        :param macd_signal: Сигнал MACD.
+        :param predictions: Прогнозы ИИ.
+        :return: Словарь с параметрами сделки.
+        """
+        try:
+            # Текущая цена закрытия
+            current_price = data['close'].iloc[-1]
+
+            # Расчет цены входа
+            entry_price = current_price
+
+            # Расчет тейк-профита и стоп-лосса на основе волатильности (ATR)
+            atr = data['high'].iloc[-1] - data['low'].iloc[-1]  # Простой ATR
+            take_profit = entry_price + atr * 1.5  # Тейк-профит: 1.5 * ATR
+            stop_loss = entry_price - atr * 1.0    # Стоп-лосс: 1.0 * ATR
+
+            # Расчет вероятности успеха
+            success_probability = 0.7  # Базовая вероятность (можно улучшить на основе данных)
+
+            # Корректировка параметров на основе сигналов
+            if trend_signal == "Покупать":
+                take_profit = entry_price + atr * 2.0  # Увеличиваем тейк-профит для бычьего тренда
+                stop_loss = entry_price - atr * 0.8    # Уменьшаем стоп-лосс
+                success_probability += 0.1
+            elif trend_signal == "Продавать":
+                take_profit = entry_price - atr * 2.0  # Увеличиваем тейк-профит для медвежьего тренда
+                stop_loss = entry_price + atr * 0.8    # Уменьшаем стоп-лосс
+                success_probability += 0.1
+
+            if rsi_signal == "Перепроданность":
+                success_probability += 0.05
+            elif rsi_signal == "Перекупленность":
+                success_probability -= 0.05
+
+            if macd_signal == "Покупать":
+                success_probability += 0.05
+            elif macd_signal == "Продавать":
+                success_probability -= 0.05
+
+            # Ограничение вероятности в пределах 0.5 - 0.95
+            success_probability = max(0.5, min(0.95, success_probability))
+
+            return {
+                "entry_price": round(entry_price, 2),
+                "take_profit": round(take_profit, 2),
+                "stop_loss": round(stop_loss, 2),
+                "success_probability": round(success_probability * 100, 2)  # В процентах
+            }
+        except Exception as e:
+            logging.error(f"Ошибка при расчете параметров сделки: {e}")
+            return {
+                "entry_price": None,
+                "take_profit": None,
+                "stop_loss": None,
+                "success_probability": None
+            }
+
+    def generate_recommendation(self, trend_signal, ema_signal, rsi_signal, macd_signal, predictions):
+        """Генерирует общую рекомендацию и параметры сделки."""
+        buy_signals = 0
+        sell_signals = 0
+
+        if trend_signal == "Покупать":
+            buy_signals += 1
+        elif trend_signal == "Продавать":
+            sell_signals += 1
+
+        if ema_signal == "Покупать":
+            buy_signals += 1
+        elif ema_signal == "Продавать":
+            sell_signals += 1
+
+        if rsi_signal == "Перепроданность":
+            buy_signals += 1
+        elif rsi_signal == "Перекупленность":
+            sell_signals += 1
+
+        if macd_signal == "Покупать":
+            buy_signals += 1
+        elif macd_signal == "Продавать":
+            sell_signals += 1
+
+        if predictions is not None and predictions[-1] > 0:
+            buy_signals += 1
+        elif predictions is not None and predictions[-1] < 0:
+            sell_signals += 1
+
+        if buy_signals > sell_signals:
+            recommendation = "Покупать"
+        elif sell_signals > buy_signals:
+            recommendation = "Продавать"
+        else:
+            recommendation = "Держать"
+
+        # Расчет параметров сделки
+        trade_parameters = self.calculate_trade_parameters(data, trend_signal, ema_signal, rsi_signal, macd_signal, predictions)
+
+        return {
+            "recommendation": recommendation,
+            "entry_price": trade_parameters["entry_price"],
+            "take_profit": trade_parameters["take_profit"],
+            "stop_loss": trade_parameters["stop_loss"],
+            "success_probability": trade_parameters["success_probability"]
+        }
 
     def start_analysis(self):
         """Обработчик кнопки 'Запустить анализ'."""
@@ -302,50 +406,17 @@ class TradingApp(tk.Tk):
             # Шаг 5: Формирование рекомендации
             logging.info("Шаг 5: Формирование рекомендации...")
             recommendation = self.generate_recommendation(trend_signal, ema_signal, rsi_signal, macd_signal, predictions)
-            self.result_text.insert(tk.END, f"Рекомендация: {recommendation}\n")
+            self.result_text.insert(tk.END, f"Рекомендация: {recommendation['recommendation']}\n")
+            self.result_text.insert(tk.END, f"Цена входа: {recommendation['entry_price']}\n")
+            self.result_text.insert(tk.END, f"Тейк-профит: {recommendation['take_profit']}\n")
+            self.result_text.insert(tk.END, f"Стоп-лосс: {recommendation['stop_loss']}\n")
+            self.result_text.insert(tk.END, f"Вероятность успеха: {recommendation['success_probability']}%\n")
 
             logging.info("Анализ завершен.")
 
         except Exception as e:
             logging.error(f"Ошибка: {str(e)}")
             messagebox.showerror("Ошибка", f"Произошла ошибка: {str(e)}")
-
-    def generate_recommendation(self, trend_signal, ema_signal, rsi_signal, macd_signal, predictions):
-        """Генерирует общую рекомендацию на основе всех сигналов."""
-        buy_signals = 0
-        sell_signals = 0
-
-        if trend_signal == "Покупать":
-            buy_signals += 1
-        elif trend_signal == "Продавать":
-            sell_signals += 1
-
-        if ema_signal == "Покупать":
-            buy_signals += 1
-        elif ema_signal == "Продавать":
-            sell_signals += 1
-
-        if rsi_signal == "Перепроданность":
-            buy_signals += 1
-        elif rsi_signal == "Перекупленность":
-            sell_signals += 1
-
-        if macd_signal == "Покупать":
-            buy_signals += 1
-        elif macd_signal == "Продавать":
-            sell_signals += 1
-
-        if predictions is not None and predictions[-1] > 0:
-            buy_signals += 1
-        elif predictions is not None and predictions[-1] < 0:
-            sell_signals += 1
-
-        if buy_signals > sell_signals:
-            return "Покупать"
-        elif sell_signals > buy_signals:
-            return "Продавать"
-        else:
-            return "Держать"
 
 if __name__ == "__main__":
     app = TradingApp()
