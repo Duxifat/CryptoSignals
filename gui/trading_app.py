@@ -101,13 +101,18 @@ class TradingApp(tk.Tk):
                                        validate="key", validatecommand=(self.register(self.validate_number), "%P"))
         self.leverage_entry.grid(row=6, column=0, padx=20, pady=5, sticky="ew")
 
+        # Выбор стратегии
+        tk.Label(sub_frame, text="Выберите стратегию:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=7, column=0, padx=20, pady=(10, 0), sticky="ew")
+        self.strategy_var = tk.StringVar(value="Краткосрочная торговля")
+        ttk.Combobox(sub_frame, values=["Краткосрочная торговля", "Среднесрочная торговля"], textvariable=self.strategy_var, width=20).grid(row=8, column=0, padx=20, pady=5, sticky="ew")
+
         # Статус ИИ
         self.ai_status_label = tk.Label(sub_frame, text="Статус ИИ: Не обучена", bg="#28293e", fg="#a9b7c6", anchor="center")
-        self.ai_status_label.grid(row=7, column=0, padx=20, pady=(10, 0), sticky="ew")
+        self.ai_status_label.grid(row=9, column=0, padx=20, pady=(10, 0), sticky="ew")
 
         # Рекомендация по обучению
         self.ai_recommendation_label = tk.Label(sub_frame, text="Рекомендация: Обучить ИИ", bg="#28293e", fg="#a9b7c6", anchor="center")
-        self.ai_recommendation_label.grid(row=8, column=0, padx=20, pady=(10, 0), sticky="ew")
+        self.ai_recommendation_label.grid(row=10, column=0, padx=20, pady=(10, 0), sticky="ew")
 
         # Кнопка "Обучить ИИ на всех парах"
         self.train_all_button = tk.Button(
@@ -120,7 +125,7 @@ class TradingApp(tk.Tk):
             relief="flat",
             activebackground="#45a049"
         )
-        self.train_all_button.grid(row=9, column=0, padx=20, pady=(20, 0), sticky="ew")
+        self.train_all_button.grid(row=11, column=0, padx=20, pady=(20, 0), sticky="ew")
 
         # Кнопка "Запустить анализ"
         self.start_button = tk.Button(
@@ -133,7 +138,7 @@ class TradingApp(tk.Tk):
             relief="flat",
             activebackground="#45a049"
         )
-        self.start_button.grid(row=10, column=0, padx=20, pady=(20, 0), sticky="ew")
+        self.start_button.grid(row=12, column=0, padx=20, pady=(20, 0), sticky="ew")
 
         # Часы (местное время и UTC)
         self.local_time_label = tk.Label(
@@ -143,7 +148,7 @@ class TradingApp(tk.Tk):
             fg="#a9b7c6",
             font=("Arial", 10)
         )
-        self.local_time_label.grid(row=11, column=0, padx=20, pady=(20, 5), sticky="ew")
+        self.local_time_label.grid(row=13, column=0, padx=20, pady=(20, 5), sticky="ew")
 
         self.utc_time_label = tk.Label(
             sub_frame,
@@ -152,7 +157,7 @@ class TradingApp(tk.Tk):
             fg="#a9b7c6",
             font=("Arial", 10)
         )
-        self.utc_time_label.grid(row=12, column=0, padx=20, pady=(0, 20), sticky="ew")
+        self.utc_time_label.grid(row=14, column=0, padx=20, pady=(0, 20), sticky="ew")
 
     def update_clock(self):
         """Обновляет время каждую секунду."""
@@ -396,7 +401,7 @@ class TradingApp(tk.Tk):
             # Шаг 4: Прогнозирование с помощью ИИ
             logging.info("Шаг 4: Прогнозирование с помощью ИИ...")
             predictor = AIPredictor()
-            predictions = predictor.predict_price_movement(data)
+            predictions = predictor.predict_price_movement(data, timeframe_type=self.strategy_var.get())
             if predictions is not None:
                 logging.info(f"Прогноз: {predictions[-1]}")
             else:
