@@ -2,20 +2,22 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.preprocessing import MinMaxScaler
 import datetime
 import logging
 import os
 from utils.logging_utils import log_ai_training_progress
-from tensorflow.keras.callbacks import Callback
 
 class LSTMModel:
-    def __init__(self, input_shape):
+    def __init__(self, input_shape, model_path="models/lstm_model.keras"):
         """
         Инициализация LSTM-модели.
         :param input_shape: Форма входных данных (например, (60, 1) для 60 временных шагов и 1 признака).
+        :param model_path: Путь для сохранения/загрузки модели.
         """
         self.input_shape = input_shape
+        self.model_path = model_path
         self.model = self._build_model()
         self.is_trained = False
         self.last_trained = None
@@ -61,13 +63,14 @@ class LSTMModel:
             logging.error(f"Error preparing data: {e}")
             raise
 
-    def train(self, X_train, y_train, epochs=50, batch_size=32):
+    def train(self, X_train, y_train, epochs=50, batch_size=32, validation_split=0.2):
         """
         Обучает модель на предоставленных данных.
         :param X_train: Входные данные для обучения.
         :param y_train: Целевые значения для обучения.
         :param epochs: Количество эпох обучения.
         :param batch_size: Размер батча.
+        :param validation_split: Доля данных для валидации.
         """
         try:
             if X_train is None or y_train is None:
@@ -75,12 +78,19 @@ class LSTMModel:
             
             logging.info(f"Starting training for {epochs} epochs.")
             
+            # Callbacks для ранней остановки и сохранения лучшей модели
+            callbacks = [
+                EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True),
+                ModelCheckpoint(self.model_path, monitor='val_loss', save_best_only=True),
+                TrainingProgressLogger()
+            ]
+            
             history = self.model.fit(
                 X_train, y_train,
                 epochs=epochs,
                 batch_size=batch_size,
-                validation_split=0.2,
-                callbacks=[TrainingProgressLogger()]
+                validation_split=validation_split,
+                callbacks=callbacks
             )
             
             self.is_trained = True
@@ -105,40 +115,52 @@ class LSTMModel:
             logging.error(f"Error during prediction: {e}")
             raise
 
-    def save_model(self, filepath):
+    def save_model(self, filepath=None):
         """
         Сохраняет модель в файл.
-        :param filepath: Путь для сохранения модели.
+        :param filepath: Путь для сохранения модели (если None, используется self.model_path).
         """
         try:
+            if filepath is None:
+                filepath = self.model_path
+
+            # Убедимся, что путь заканчивается на .keras
+            if not filepath.endswith('.keras'):
+                filepath += '.keras'
+
             self.model.save(filepath)
             logging.info(f"Model saved to {filepath}.")
         except Exception as e:
             logging.error(f"Error saving model: {e}")
             raise
 
-    @staticmethod
-    def load_model(filepath):
+    def load_model(self, filepath=None):
         """
         Загружает модель из файла.
-        :param filepath: Путь к файлу модели.
+        :param filepath: Путь к файлу модели (если None, используется self.model_path).
         :return: Загруженная модель.
         """
         try:
+            if filepath is None:
+                filepath = self.model_path
+
+            # Убедимся, что путь заканчивается на .keras
+            if not filepath.endswith('.keras'):
+                filepath += '.keras'
+
             from tensorflow.keras.models import load_model
-            model = load_model(filepath)
+            self.model = load_model(filepath)
+            self.is_trained = True
             logging.info(f"Model loaded from {filepath}.")
-            return model
         except Exception as e:
             logging.error(f"Error loading model: {e}")
             raise
 
-class TrainingProgressLogger(Callback):
+class TrainingProgressLogger:
     """
     Callback для логирования прогресса обучения.
     """
     def __init__(self):
-        super().__init__()
         self.epoch = 0
 
     def on_epoch_begin(self, epoch, logs=None):
@@ -147,15 +169,3 @@ class TrainingProgressLogger(Callback):
     def on_epoch_end(self, epoch, logs=None):
         if logs:
             log_ai_training_progress(epoch + 1, logs['loss'], logs['val_loss'])
-
-    def set_model(self, model):
-        """
-        Метод, необходимый для использования в качестве callback в Keras.
-        """
-        pass
-
-    def set_params(self, params):
-        """
-        Метод, необходимый для использования в качестве callback в Keras.
-        """
-        pass
