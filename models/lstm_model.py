@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from sklearn.preprocessing import MinMaxScaler
 import datetime
 import logging
@@ -54,7 +54,7 @@ class LSTMModel:
             scaled_data = scaler.fit_transform(data['close'].values.reshape(-1, 1))
             X, y = [], []
             for i in range(look_back, len(scaled_data)):
-                X.append(scaled_data[i-look_back:i, 0])
+                X.append(scaled_data[i - look_back:i, 0])
                 y.append(scaled_data[i, 0])
             X, y = np.array(X), np.array(y)
             X = np.reshape(X, (X.shape[0], X.shape[1], 1))
@@ -86,7 +86,8 @@ class LSTMModel:
             ]
             
             history = self.model.fit(
-                X_train, y_train,
+                X_train, 
+                y_train,
                 epochs=epochs,
                 batch_size=batch_size,
                 validation_split=validation_split,
@@ -156,16 +157,24 @@ class LSTMModel:
             logging.error(f"Error loading model: {e}")
             raise
 
-class TrainingProgressLogger:
+
+class TrainingProgressLogger(Callback):
     """
     Callback для логирования прогресса обучения.
     """
     def __init__(self):
+        super().__init__()
         self.epoch = 0
+
+    # Здесь убрали set_model, т.к. в базовом классе уже есть
+    # свойство model, и определён сеттер мы переопределить не можем.
 
     def on_epoch_begin(self, epoch, logs=None):
         self.epoch = epoch
 
     def on_epoch_end(self, epoch, logs=None):
         if logs:
-            log_ai_training_progress(epoch + 1, logs['loss'], logs['val_loss'])
+            loss = logs.get('loss', 0.0)
+            val_loss = logs.get('val_loss', 0.0)
+            # Логируем прогресс через нашу функцию из logging_utils
+            log_ai_training_progress(epoch + 1, loss, val_loss)
