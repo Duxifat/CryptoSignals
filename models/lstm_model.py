@@ -166,8 +166,12 @@ class TrainingProgressLogger(Callback):
         super().__init__()
         self.epoch = 0
 
-    # Здесь убрали set_model, т.к. в базовом классе уже есть
-    # свойство model, и определён сеттер мы переопределить не можем.
+    def set_model(self, model):  # <-- ADD
+        """
+        Явно добавляем метод set_model, чтобы избежать ошибки 'no attribute set_model'
+        при вызове Keras в некоторых версиях TF.
+        """
+        super().set_model(model)
 
     def on_epoch_begin(self, epoch, logs=None):
         self.epoch = epoch

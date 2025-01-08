@@ -1,3 +1,4 @@
+# ========== trading_app.py ==========
 import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
@@ -81,8 +82,8 @@ class TradingApp(tk.Tk):
         tk.Label(sub_frame, text="Выберите пару:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=1, column=0, padx=20, sticky="ew")
         self.symbol_var = tk.StringVar(value="BTCUSDT")
         self.symbols = [
-            "BTCUSDT", "ETHUSDT", "XRPUSDT", "SOLUSDT", 
-            "DOGEUSDT", "TAIUSDT", "ADAUSDT", "SUIUSDT", 
+            "BTCUSDT", "ETHUSDT", "XRPUSDT", "SOLUSDT",
+            "DOGEUSDT", "TAIUSDT", "ADAUSDT", "SUIUSDT",
             "VIRTUALUSDT"
         ]
         ttk.Combobox(sub_frame, values=self.symbols, textvariable=self.symbol_var, width=15).grid(row=2, column=0, padx=20, pady=5, sticky="ew")
@@ -104,7 +105,12 @@ class TradingApp(tk.Tk):
         # Выбор стратегии
         tk.Label(sub_frame, text="Выберите стратегию:", bg="#28293e", fg="#a9b7c6", anchor="center").grid(row=7, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.strategy_var = tk.StringVar(value="Краткосрочная торговля")
-        ttk.Combobox(sub_frame, values=["Краткосрочная торговля", "Среднесрочная торговля"], textvariable=self.strategy_var, width=20).grid(row=8, column=0, padx=20, pady=5, sticky="ew")
+        ttk.Combobox(
+            sub_frame,
+            values=["Краткосрочная торговля", "Среднесрочная торговля"],
+            textvariable=self.strategy_var,
+            width=20
+        ).grid(row=8, column=0, padx=20, pady=5, sticky="ew")
 
         # Статус ИИ
         self.ai_status_label = tk.Label(sub_frame, text="Статус ИИ: Не обучена", bg="#28293e", fg="#a9b7c6", anchor="center")
@@ -248,32 +254,26 @@ class TradingApp(tk.Tk):
         :param ema_signal: Сигнал EMA.
         :param rsi_signal: Сигнал RSI.
         :param macd_signal: Сигнал MACD.
-        :param predictions: Прогнозы ИИ.
+        :param predictions: Словарь {таймфрейм: float}, прогнозы ИИ.
         :return: Словарь с параметрами сделки.
         """
         try:
-            # Текущая цена закрытия
             current_price = data['close'].iloc[-1]
-
-            # Расчет цены входа
             entry_price = current_price
 
-            # Расчет тейк-профита и стоп-лосса на основе волатильности (ATR)
-            atr = data['high'].iloc[-1] - data['low'].iloc[-1]  # Простой ATR
-            take_profit = entry_price + atr * 1.5  # Тейк-профит: 1.5 * ATR
-            stop_loss = entry_price - atr * 1.0    # Стоп-лосс: 1.0 * ATR
+            # Простой ATR (как пример)
+            atr = data['high'].iloc[-1] - data['low'].iloc[-1]
+            take_profit = entry_price + atr * 1.5
+            stop_loss = entry_price - atr * 1.0
+            success_probability = 0.7
 
-            # Расчет вероятности успеха
-            success_probability = 0.7  # Базовая вероятность (можно улучшить на основе данных)
-
-            # Корректировка параметров на основе сигналов
             if trend_signal == "Покупать":
-                take_profit = entry_price + atr * 2.0  # Увеличиваем тейк-профит для бычьего тренда
-                stop_loss = entry_price - atr * 0.8    # Уменьшаем стоп-лосс
+                take_profit = entry_price + atr * 2.0
+                stop_loss = entry_price - atr * 0.8
                 success_probability += 0.1
             elif trend_signal == "Продавать":
-                take_profit = entry_price - atr * 2.0  # Увеличиваем тейк-профит для медвежьего тренда
-                stop_loss = entry_price + atr * 0.8    # Уменьшаем стоп-лосс
+                take_profit = entry_price - atr * 2.0
+                stop_loss = entry_price + atr * 0.8
                 success_probability += 0.1
 
             if rsi_signal == "Перепроданность":
@@ -286,14 +286,21 @@ class TradingApp(tk.Tk):
             elif macd_signal == "Продавать":
                 success_probability -= 0.05
 
-            # Ограничение вероятности в пределах 0.5 - 0.95
+            # Пример учёта среднего прогноза по всем таймфреймам
+            if predictions:
+                avg_prediction = sum(predictions.values()) / len(predictions)
+                if avg_prediction > 0:
+                    success_probability += 0.03
+                else:
+                    success_probability -= 0.03
+
             success_probability = max(0.5, min(0.95, success_probability))
 
             return {
                 "entry_price": round(entry_price, 2),
                 "take_profit": round(take_profit, 2),
                 "stop_loss": round(stop_loss, 2),
-                "success_probability": round(success_probability * 100, 2)  # В процентах
+                "success_probability": round(success_probability * 100, 2)
             }
         except Exception as e:
             logging.error(f"Ошибка при расчете параметров сделки: {e}")
@@ -305,7 +312,10 @@ class TradingApp(tk.Tk):
             }
 
     def generate_recommendation(self, trend_signal, ema_signal, rsi_signal, macd_signal, predictions):
-        """Генерирует общую рекомендацию и параметры сделки."""
+        """
+        Генерирует общую рекомендацию и параметры сделки.
+        Здесь пример логики подсчёта buy_signals / sell_signals + итоговая рекомендация.
+        """
         buy_signals = 0
         sell_signals = 0
 
@@ -329,10 +339,14 @@ class TradingApp(tk.Tk):
         elif macd_signal == "Продавать":
             sell_signals += 1
 
-        if predictions is not None and predictions[-1] > 0:
-            buy_signals += 1
-        elif predictions is not None and predictions[-1] < 0:
-            sell_signals += 1
+        # Пример: берём «средний» прогноз (последний элемент) и решаем
+        if predictions and len(predictions) > 0:
+            # Можно взять, например, среднее
+            avg_pred = sum(predictions.values()) / len(predictions)
+            if avg_pred > 0:
+                buy_signals += 1
+            else:
+                sell_signals += 1
 
         if buy_signals > sell_signals:
             recommendation = "Покупать"
@@ -341,16 +355,8 @@ class TradingApp(tk.Tk):
         else:
             recommendation = "Держать"
 
-        # Расчет параметров сделки
-        trade_parameters = self.calculate_trade_parameters(data, trend_signal, ema_signal, rsi_signal, macd_signal, predictions)
-
-        return {
-            "recommendation": recommendation,
-            "entry_price": trade_parameters["entry_price"],
-            "take_profit": trade_parameters["take_profit"],
-            "stop_loss": trade_parameters["stop_loss"],
-            "success_probability": trade_parameters["success_probability"]
-        }
+        # Возвращаем только итоговую строку (параметры сделки будут считаться отдельно)
+        return recommendation
 
     def start_analysis(self):
         """Обработчик кнопки 'Запустить анализ'."""
@@ -366,6 +372,14 @@ class TradingApp(tk.Tk):
             logging.info(f"Сумма ставки: {capital}")
             logging.info(f"Плечо: {leverage}")
 
+            # === Исправленный блок: маппинг стратегий на short_term / medium_term ===
+            if self.strategy_var.get() == "Краткосрочная торговля":
+                chosen_tf_type = "short_term"
+            elif self.strategy_var.get() == "Среднесрочная торговля":
+                chosen_tf_type = "medium_term"
+            else:
+                chosen_tf_type = "short_term"  # на всякий случай
+
             # Шаг 1: Загрузка данных
             logging.info("Шаг 1: Загрузка исторических данных...")
             fetcher = DataFetcher()
@@ -374,7 +388,6 @@ class TradingApp(tk.Tk):
                 logging.error("Ошибка: Не удалось загрузить данные.")
                 messagebox.showerror("Ошибка", "Не удалось загрузить данные. Проверьте интернет-соединение.")
                 return
-
             logging.info("Данные успешно загружены.")
 
             # Шаг 2: Валидация данных
@@ -383,7 +396,6 @@ class TradingApp(tk.Tk):
                 logging.error("Ошибка: Данные не прошли валидацию.")
                 messagebox.showerror("Ошибка", "Данные не прошли валидацию.")
                 return
-
             logging.info("Данные прошли валидацию.")
 
             # Шаг 3: Расчет индикаторов
@@ -401,27 +413,46 @@ class TradingApp(tk.Tk):
             # Шаг 4: Прогнозирование с помощью ИИ
             logging.info("Шаг 4: Прогнозирование с помощью ИИ...")
             predictor = AIPredictor()
-            predictions = predictor.predict_price_movement(data, timeframe_type=self.strategy_var.get())
-            if predictions is not None:
-                logging.info(f"Прогноз: {predictions[-1]}")
-            else:
-                logging.error("Ошибка: Не удалось выполнить прогноз.")
+            predictions = predictor.predict_price_movement(data, timeframe_type=chosen_tf_type)
+            if predictions is None or len(predictions) == 0:
+                logging.error("Ошибка: Не удалось выполнить прогноз или прогноз пуст.")
                 messagebox.showerror("Ошибка", "Не удалось выполнить прогноз.")
+                return
+            else:
+                logging.info(f"Полученные прогнозы: {predictions}")
 
             # Шаг 5: Формирование рекомендации
             logging.info("Шаг 5: Формирование рекомендации...")
-            recommendation = self.generate_recommendation(trend_signal, ema_signal, rsi_signal, macd_signal, predictions)
-            self.result_text.insert(tk.END, f"Рекомендация: {recommendation['recommendation']}\n")
-            self.result_text.insert(tk.END, f"Цена входа: {recommendation['entry_price']}\n")
-            self.result_text.insert(tk.END, f"Тейк-профит: {recommendation['take_profit']}\n")
-            self.result_text.insert(tk.END, f"Стоп-лосс: {recommendation['stop_loss']}\n")
-            self.result_text.insert(tk.END, f"Вероятность успеха: {recommendation['success_probability']}%\n")
+            final_recommendation = self.generate_recommendation(
+                trend_signal,
+                ema_signal,
+                rsi_signal,
+                macd_signal,
+                predictions
+            )
+            trade_params = self.calculate_trade_parameters(
+                data,
+                trend_signal,
+                ema_signal,
+                rsi_signal,
+                macd_signal,
+                predictions
+            )
+
+            # Выводим итоги
+            self.result_text.delete("1.0", tk.END)
+            self.result_text.insert(tk.END, f"Рекомендация: {final_recommendation}\n")
+            self.result_text.insert(tk.END, f"Цена входа: {trade_params['entry_price']}\n")
+            self.result_text.insert(tk.END, f"Тейк-профит: {trade_params['take_profit']}\n")
+            self.result_text.insert(tk.END, f"Стоп-лосс: {trade_params['stop_loss']}\n")
+            self.result_text.insert(tk.END, f"Вероятность успеха: {trade_params['success_probability']}%\n")
 
             logging.info("Анализ завершен.")
 
         except Exception as e:
             logging.error(f"Ошибка: {str(e)}")
             messagebox.showerror("Ошибка", f"Произошла ошибка: {str(e)}")
+
 
 if __name__ == "__main__":
     app = TradingApp()

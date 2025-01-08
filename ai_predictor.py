@@ -1,3 +1,5 @@
+# ========== ai_predictor.py ==========
+
 import numpy as np
 import pandas as pd
 import json
@@ -32,9 +34,12 @@ class AIPredictor:
         self.last_trained = self._load_state()
         self.fetcher = DataFetcher()
 
+        # --- ДОБАВЛЕННОЕ: попытка загрузить уже существующие модели с диска
+        self._attempt_load_models()
+
     def _load_state(self):
         """
-        Загружает состояние модели из файла.
+        Загружает состояние модели из файла (время последнего обучения).
         :return: Время последнего обучения или None, если файл не существует.
         """
         if os.path.exists(self.state_file):
@@ -45,7 +50,7 @@ class AIPredictor:
 
     def _save_state(self):
         """
-        Сохраняет состояние модели в файл.
+        Сохраняет состояние модели (время последнего обучения) в файл.
         """
         state = {
             "last_trained": self.last_trained.isoformat() if self.last_trained else None
@@ -59,7 +64,6 @@ class AIPredictor:
     def get_ai_status(self):
         """
         Возвращает статус ИИ и время последнего обучения.
-        :return: Кортеж (статус, время последнего обучения).
         """
         status = "Обучена" if self.last_trained else "Не обучена"
         if self.last_trained:
@@ -70,7 +74,6 @@ class AIPredictor:
     def get_training_recommendation(self):
         """
         Рекомендует обучение, если прошло больше 7 дней с последнего обучения.
-        :return: Рекомендация в виде строки.
         """
         if not self.last_trained:
             return "Обучить ИИ"
@@ -81,21 +84,52 @@ class AIPredictor:
         formatted_date = next_training_date.strftime("%d-%m-%Y %H:%M:%S")
         return f"Обучить ИИ снова после {formatted_date}"
 
+    def _attempt_load_models(self):
+        """
+        Пытается загрузить модели с диска для каждого возможного таймфрейма, 
+        чтобы не нужно было обучать ИИ каждый раз.
+        """
+        # Проходимся по всем комбинациям (short_term/medium_term) x (таймфрейм)
+        for tf_type, tfs in self.timeframes.items():
+            for tf in tfs:
+                model_key = f"{tf_type}_{tf}"
+                # Проверяем, есть ли уже такой файл модели (например, "models/short_term_1.keras")
+                # Название файла можно менять по вкусу
+                model_filename = f"models/{model_key}.keras"
+                if os.path.exists(model_filename):
+                    # Если файл есть, создаём LSTMModel и грузим из файла
+                    lstm = LSTMModel(input_shape=(60, 1), model_path=model_filename)
+                    try:
+                        lstm.load_model()  # load_model без аргумента берёт self.model_path
+                        self.models[model_key] = lstm
+                        logging.info(f"Загружена модель {model_key} из {model_filename}")
+                    except Exception as e:
+                        logging.error(f"Ошибка при загрузке модели {model_key} из {model_filename}: {e}")
+
     async def train_ai_on_all_timeframes(self, symbols):
         """
         Обучает ИИ на всех таймфреймах для всех пар.
-        :param symbols: Список торговых пар.
+        (При этом, если 'data_cache' очищается, мы загружаем данные заново)
         """
         log_ai_training_start()
         try:
+            # Ваша логика удаления data_cache, если надо, тут не трогаем
+            # ...
+
             for timeframe_type, timeframes in self.timeframes.items():
                 for timeframe in timeframes:
                     model_key = f"{timeframe_type}_{timeframe}"
+                    # Создаём новую пустую LSTMModel для обучения
                     self.models[model_key] = LSTMModel(input_shape=(60, 1))
                     await self._train_ai_on_timeframe(symbols, timeframe, model_key)
+
             self.last_trained = datetime.datetime.now()
             self._save_state()
             log_ai_training_complete()
+
+            # --- ДОБАВЛЕННОЕ: Сохраним модели на диск, чтобы при следующем запуске их не обучать заново.
+            self._save_all_models()
+
         except Exception as e:
             log_ai_training_error(f"Error during training: {e}")
             raise
@@ -103,9 +137,6 @@ class AIPredictor:
     async def _train_ai_on_timeframe(self, symbols, timeframe, model_key):
         """
         Обучает ИИ на данных для конкретного таймфрейма.
-        :param symbols: Список торговых пар.
-        :param timeframe: Таймфрейм.
-        :param model_key: Ключ модели.
         """
         log_event("AI Training", f"Starting training for timeframe: {timeframe}")
         try:
@@ -126,17 +157,32 @@ class AIPredictor:
             log_event("AI Training", f"Error during training for timeframe {timeframe}: {e}", level="error")
             raise
 
+    def _save_all_models(self):
+        """
+        Сохраняет все обученные модели (self.models) в файлы (например, models/short_term_1.keras).
+        """
+        if not os.path.exists("models"):
+            os.makedirs("models")
+
+        for model_key, lstm_model_obj in self.models.items():
+            try:
+                # Сформируем путь вида "models/short_term_1.keras"
+                model_filename = f"models/{model_key}.keras"
+                lstm_model_obj.save_model(model_filename)
+                logging.info(f"Модель {model_key} сохранена в {model_filename}")
+            except Exception as e:
+                logging.error(f"Ошибка сохранения модели {model_key}: {e}")
+
     def predict_price_movement(self, data, timeframe_type="short_term"):
         """
-        Прогнозирует движение цены для конкретного таймфрейма.
-        :param data: Данные для прогнозирования.
-        :param timeframe_type: Тип таймфрейма (short_term или medium_term).
-        :return: Словарь с прогнозами для каждого таймфрейма.
+        Прогнозирует движение цены для всех таймфреймов, входящих в заданный тип.
+        Возвращает словарь вида { "1": число, "3": число, ... } – последняя точка прогноза.
         """
         log_prediction_start()
         try:
             if data is None or data.empty:
                 raise ValueError("No data provided for prediction.")
+
             predictions = {}
             for timeframe in self.timeframes[timeframe_type]:
                 model_key = f"{timeframe_type}_{timeframe}"
@@ -144,8 +190,10 @@ class AIPredictor:
                     X, y, scaler = LSTMModel.prepare_data(data)
                     prediction = self.models[model_key].predict(X)
                     predictions[timeframe] = prediction[-1]
+
             log_prediction_result(predictions)
             return predictions
+
         except Exception as e:
             log_prediction_error(f"Error during prediction: {e}")
             raise

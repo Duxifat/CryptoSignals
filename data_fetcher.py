@@ -63,7 +63,7 @@ class DataFetcher:
         Загружает данные из кэша, если они есть.
         :param symbol: Торговая пара.
         :param timeframe: Таймфрейм.
-        :return: DataFrame с данными или None, если кэш отсутствует.
+        :return: DataFrame с данными или None, если кэш отсутствует или битый.
         """
         cache_file = self._get_cache_file_path(symbol, timeframe)
         if os.path.exists(cache_file):
@@ -71,7 +71,14 @@ class DataFetcher:
                 with open(cache_file, "r") as f:
                     data = json.load(f)
                 df = pd.DataFrame(data)
-                df['timestamp'] = pd.to_datetime(df['timestamp'].astype(float), unit='ms')
+
+                # -- Добавляем обработку KeyError при отсутствии 'timestamp'
+                try:
+                    df['timestamp'] = pd.to_datetime(df['timestamp'].astype(float), unit='ms')
+                except KeyError:  # <-- ADD
+                    logging.error(f"Missing 'timestamp' in the file {cache_file}")
+                    return None  # или pd.DataFrame()
+
                 df.set_index('timestamp', inplace=True)
                 logging.info(f"Loaded cached data for {symbol} ({timeframe}).")
                 return df
