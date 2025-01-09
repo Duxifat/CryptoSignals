@@ -1,3 +1,5 @@
+# ========== data_fetcher.py ==========
+
 import os
 import pandas as pd
 import ccxt
@@ -72,12 +74,12 @@ class DataFetcher:
                     data = json.load(f)
                 df = pd.DataFrame(data)
 
-                # -- Добавляем обработку KeyError при отсутствии 'timestamp'
+                # Обработка временных меток
                 try:
                     df['timestamp'] = pd.to_datetime(df['timestamp'].astype(float), unit='ms')
-                except KeyError:  # <-- ADD
+                except KeyError:
                     logging.error(f"Missing 'timestamp' in the file {cache_file}")
-                    return None  # или pd.DataFrame()
+                    return None
 
                 df.set_index('timestamp', inplace=True)
                 logging.info(f"Loaded cached data for {symbol} ({timeframe}).")
@@ -136,6 +138,25 @@ class DataFetcher:
             logging.error(f"Error showing time warning: {e}")
         finally:
             raise RuntimeError("Локальное время не синхронизировано с серверным временем.")
+
+    def check_data_delay(self, data: pd.DataFrame, threshold: int = 5) -> bool:
+        """
+        Проверяет задержку в данных.
+        :param data: DataFrame с данными.
+        :param threshold: Порог задержки в секундах.
+        :return: True, если задержка в пределах допустимого, иначе False.
+        """
+        try:
+            latest_timestamp = data.index[-1]
+            current_time = pd.Timestamp.now(tz=latest_timestamp.tz)
+            delay = (current_time - latest_timestamp).total_seconds()
+            if delay > threshold:
+                logging.warning(f"Data delay is too high: {delay} seconds.")
+                return False
+            return True
+        except Exception as e:
+            logging.error(f"Error checking data delay: {e}")
+            return False
 
     async def fetch_historical_data_async(self, symbol: str, timeframe: str = '60', limit: int = 200) -> pd.DataFrame:
         """

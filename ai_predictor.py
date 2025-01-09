@@ -34,7 +34,7 @@ class AIPredictor:
         self.last_trained = self._load_state()
         self.fetcher = DataFetcher()
 
-        # --- ДОБАВЛЕННОЕ: попытка загрузить уже существующие модели с диска
+        # Загрузка существующих моделей с диска
         self._attempt_load_models()
 
     def _load_state(self):
@@ -86,21 +86,16 @@ class AIPredictor:
 
     def _attempt_load_models(self):
         """
-        Пытается загрузить модели с диска для каждого возможного таймфрейма, 
-        чтобы не нужно было обучать ИИ каждый раз.
+        Пытается загрузить модели с диска для каждого возможного таймфрейма.
         """
-        # Проходимся по всем комбинациям (short_term/medium_term) x (таймфрейм)
         for tf_type, tfs in self.timeframes.items():
             for tf in tfs:
                 model_key = f"{tf_type}_{tf}"
-                # Проверяем, есть ли уже такой файл модели (например, "models/short_term_1.keras")
-                # Название файла можно менять по вкусу
                 model_filename = f"models/{model_key}.keras"
                 if os.path.exists(model_filename):
-                    # Если файл есть, создаём LSTMModel и грузим из файла
                     lstm = LSTMModel(input_shape=(60, 1), model_path=model_filename)
                     try:
-                        lstm.load_model()  # load_model без аргумента берёт self.model_path
+                        lstm.load_model()
                         self.models[model_key] = lstm
                         logging.info(f"Загружена модель {model_key} из {model_filename}")
                     except Exception as e:
@@ -109,17 +104,12 @@ class AIPredictor:
     async def train_ai_on_all_timeframes(self, symbols):
         """
         Обучает ИИ на всех таймфреймах для всех пар.
-        (При этом, если 'data_cache' очищается, мы загружаем данные заново)
         """
         log_ai_training_start()
         try:
-            # Ваша логика удаления data_cache, если надо, тут не трогаем
-            # ...
-
             for timeframe_type, timeframes in self.timeframes.items():
                 for timeframe in timeframes:
                     model_key = f"{timeframe_type}_{timeframe}"
-                    # Создаём новую пустую LSTMModel для обучения
                     self.models[model_key] = LSTMModel(input_shape=(60, 1))
                     await self._train_ai_on_timeframe(symbols, timeframe, model_key)
 
@@ -127,7 +117,7 @@ class AIPredictor:
             self._save_state()
             log_ai_training_complete()
 
-            # --- ДОБАВЛЕННОЕ: Сохраним модели на диск, чтобы при следующем запуске их не обучать заново.
+            # Сохранение всех моделей на диск
             self._save_all_models()
 
         except Exception as e:
@@ -159,14 +149,13 @@ class AIPredictor:
 
     def _save_all_models(self):
         """
-        Сохраняет все обученные модели (self.models) в файлы (например, models/short_term_1.keras).
+        Сохраняет все обученные модели в файлы.
         """
         if not os.path.exists("models"):
             os.makedirs("models")
 
         for model_key, lstm_model_obj in self.models.items():
             try:
-                # Сформируем путь вида "models/short_term_1.keras"
                 model_filename = f"models/{model_key}.keras"
                 lstm_model_obj.save_model(model_filename)
                 logging.info(f"Модель {model_key} сохранена в {model_filename}")
